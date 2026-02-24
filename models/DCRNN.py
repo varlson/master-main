@@ -13,7 +13,6 @@ class DCGRUCell(nn.Module):
         self.k = k
         self.dropout = nn.Dropout(dropout)
         
-        # ✅ CORREÇÃO: Converter matriz esparsa para densa
         if sp.issparse(adj_mx):
             adj_mx = adj_mx.toarray()
         

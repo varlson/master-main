@@ -1,6 +1,5 @@
 mlruns
-backbone
-**/*.pkl
-**/*.npy
-**/*.h5
+data
+.vscode
+*.log   
 **/__pycache__/
