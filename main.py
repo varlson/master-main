@@ -9,7 +9,14 @@ import numpy as np
 import torch
 
 from shared.loaders import prepare_dataloaders_from_arrays
-from shared.MLFlow import DCRNN_grid_search, GraphWaveNet_grid_search, MTGNN_grid_search
+from shared.MLFlow import (
+    DCRNN_grid_search,
+    GraphWaveNet_grid_search,
+    MTGNN_grid_search,
+    DGCRN_grid_search,
+    STICformer_grid_search,
+    PatchSTG_grid_search,
+)
 from shared.resultSumarization import (
     consolidate_experiment_results,
     create_comparison_report,
@@ -25,16 +32,19 @@ NPY_DIR = Path("data/npy")
 RESULTS_DIR = Path("results")
 
 DATASET_NAME = os.getenv("DATASET_NAME", "pems-bay")  # ex: "pems-bay" ou "metr-la"
-DATASET_NAMES_ENV = os.getenv("DATASET_NAMES", "")
+DATASET_NAMES_ENV = os.getenv("DATASET_NAMES", "metr-la")
 DEVICE = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
 
 SEQ_LEN = int(os.getenv("SEQ_LEN", "12"))
 HORIZON = int(os.getenv("HORIZON", "12"))
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "64"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "8"))
 
 RUN_DCRNN = os.getenv("RUN_DCRNN", "1") == "1"
 RUN_GRAPH_WAVENET = os.getenv("RUN_GRAPH_WAVENET", "1") == "1"
 RUN_MTGNN = os.getenv("RUN_MTGNN", "1") == "1"
+RUN_DGCRN = os.getenv("RUN_DGCRN", "1") == "1"
+RUN_STICFORMER = os.getenv("RUN_STICFORMER", "1") == "1"
+RUN_PATCHSTG = os.getenv("RUN_PATCHSTG", "1") == "1"
 
 RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -80,7 +90,7 @@ def resolve_dataset_paths(dataset_name: str, npy_dir: Path) -> tuple[Path, Path]
     return data_path, adj_path
 
 
-def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict]:
+def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dict, dict, dict]:
     # Grid enxuto por padrao para facilitar execucao inicial.
     dcrnn_param_grid = {
         "input_dim": [1],
@@ -92,7 +102,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict]:
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [5],
+        "epochs": [2],
         "patience": [5],
         "use_scheduled_sampling": [False],
         "teacher_forcing_ratio": [0.5],
@@ -110,7 +120,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict]:
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [5],
+        "epochs": [2],
         "patience": [5],
     }
 
@@ -129,11 +139,67 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict]:
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [5],
+        "epochs": [2],
         "patience": [5],
     }
 
-    return dcrnn_param_grid, graph_wavenet_param_grid, mtgnn_param_grid
+    dgcrn_param_grid = {
+        "input_dim": [1],
+        "hidden_dim": [64],
+        "output_dim": [1],
+        "seq_len": [seq_len],
+        "horizon": [horizon],
+        "node_dim": [16],
+        "gcn_depth": [2],
+        "dropout": [0.1],
+        "lr": [1e-3],
+        "weight_decay": [1e-4],
+        "epochs": [2],
+        "patience": [5],
+    }
+
+    sticformer_param_grid = {
+        "input_dim": [1],
+        "hidden_dim": [64],
+        "output_dim": [1],
+        "seq_len": [seq_len],
+        "horizon": [horizon],
+        "num_layers": [2],
+        "num_heads": [4],
+        "ff_multiplier": [2],
+        "dropout": [0.1],
+        "lr": [1e-3],
+        "weight_decay": [1e-4],
+        "epochs": [2],
+        "patience": [5],
+    }
+
+    patchstg_param_grid = {
+        "input_dim": [1],
+        "hidden_dim": [64],
+        "output_dim": [1],
+        "seq_len": [seq_len],
+        "horizon": [horizon],
+        "patch_len": [4],
+        "patch_stride": [2],
+        "num_layers": [2],
+        "num_heads": [4],
+        "ff_multiplier": [2],
+        "dropout": [0.1],
+        "lr": [1e-3],
+        "weight_decay": [1e-4],
+        "epochs": [2],
+        "patience": [5],
+    }
+
+    return (
+        dcrnn_param_grid,
+        graph_wavenet_param_grid,
+        mtgnn_param_grid,
+        dgcrn_param_grid,
+        sticformer_param_grid,
+        patchstg_param_grid,
+    )
 
 
 def run_model_experiment(
@@ -248,7 +314,14 @@ def run_dataset_pipeline(dataset_name: str) -> list[dict]:
         )
     )
 
-    dcrnn_param_grid, graph_wavenet_param_grid, mtgnn_param_grid = build_param_grids(SEQ_LEN, HORIZON)
+    (
+        dcrnn_param_grid,
+        graph_wavenet_param_grid,
+        mtgnn_param_grid,
+        dgcrn_param_grid,
+        sticformer_param_grid,
+        patchstg_param_grid,
+    ) = build_param_grids(SEQ_LEN, HORIZON)
     experiments_data: list[dict] = []
 
     if RUN_DCRNN:
@@ -309,6 +382,66 @@ def run_dataset_pipeline(dataset_name: str) -> list[dict]:
                 experiments_data.append(result)
         except Exception:
             print(f"\nFalha ao executar MTGNN para dataset '{dataset_name}'.")
+            traceback.print_exc()
+
+    if RUN_DGCRN:
+        try:
+            result = run_model_experiment(
+                model_name="DGCRN",
+                grid_search_fn=DGCRN_grid_search,
+                param_grid=dgcrn_param_grid,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                test_loader=test_loader,
+                adj_mx=adj_mx,
+                num_nodes=num_nodes,
+                dataset_name=dataset_name,
+                normalization_stats=stats,
+            )
+            if result is not None:
+                experiments_data.append(result)
+        except Exception:
+            print(f"\nFalha ao executar DGCRN para dataset '{dataset_name}'.")
+            traceback.print_exc()
+
+    if RUN_STICFORMER:
+        try:
+            result = run_model_experiment(
+                model_name="STICformer",
+                grid_search_fn=STICformer_grid_search,
+                param_grid=sticformer_param_grid,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                test_loader=test_loader,
+                adj_mx=adj_mx,
+                num_nodes=num_nodes,
+                dataset_name=dataset_name,
+                normalization_stats=stats,
+            )
+            if result is not None:
+                experiments_data.append(result)
+        except Exception:
+            print(f"\nFalha ao executar STICformer para dataset '{dataset_name}'.")
+            traceback.print_exc()
+
+    if RUN_PATCHSTG:
+        try:
+            result = run_model_experiment(
+                model_name="PatchSTG",
+                grid_search_fn=PatchSTG_grid_search,
+                param_grid=patchstg_param_grid,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                test_loader=test_loader,
+                adj_mx=adj_mx,
+                num_nodes=num_nodes,
+                dataset_name=dataset_name,
+                normalization_stats=stats,
+            )
+            if result is not None:
+                experiments_data.append(result)
+        except Exception:
+            print(f"\nFalha ao executar PatchSTG para dataset '{dataset_name}'.")
             traceback.print_exc()
 
     if not experiments_data:

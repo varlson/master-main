@@ -1,6 +1,9 @@
 from models.WaveNet import GraphWaveNet
 from models.DCRNN import DCRNN
 from models.MTGNN import MTGNN
+from models.DGCRN import DGCRN
+from models.STICformer import STICformer
+from models.PatchSTG import PatchSTG
 import torch
 import mlflow
 import mlflow.pytorch
@@ -10,6 +13,50 @@ from datetime import datetime
 import pandas as pd
 import traceback
 import sys
+import os
+
+
+def _build_best_configs_dataframe(all_results):
+    best_loss = min(all_results, key=lambda x: x['test_loss'])
+    best_mae = min(all_results, key=lambda x: x['mae'])
+    best_rmse = min(all_results, key=lambda x: x['rmse'])
+    best_mape = min(all_results, key=lambda x: x['mape'])
+
+    best_configs = {
+        'Métrica': ['Loss', 'MAE', 'RMSE', 'MAPE'],
+        'Test Loss': [best_loss['test_loss'], best_mae['test_loss'],
+                     best_rmse['test_loss'], best_mape['test_loss']],
+        'MAE': [best_loss['mae'], best_mae['mae'],
+               best_rmse['mae'], best_mape['mae']],
+        'RMSE': [best_loss['rmse'], best_mae['rmse'],
+                best_rmse['rmse'], best_mape['rmse']],
+        'MAPE (%)': [best_loss['mape'], best_mae['mape'],
+                    best_rmse['mape'], best_mape['mape']],
+        'Params': [str(best_loss['params']), str(best_mae['params']),
+                  str(best_rmse['params']), str(best_mape['params'])]
+    }
+    df_best = pd.DataFrame(best_configs)
+    return best_loss, best_mae, best_rmse, best_mape, df_best
+
+
+def _save_grid_search_summary(experiment_name, model_name, all_results, best_loss, best_mae, best_rmse, best_mape):
+    os.makedirs("results", exist_ok=True)
+    results_summary = {
+        "timestamp": datetime.now().isoformat(),
+        "experiment_name": experiment_name,
+        "model": model_name,
+        "total_configs": len(all_results),
+        "best_by_loss": best_loss,
+        "best_by_mae": best_mae,
+        "best_by_rmse": best_rmse,
+        "best_by_mape": best_mape,
+        "all_results": all_results
+    }
+
+    filename = f"results/{experiment_name}_summary.json"
+    with open(filename, "w") as f:
+        json.dump(results_summary, f, indent=2)
+    print(f"\n💾 Resumo completo salvo em: {filename}")
 
 
 # ============================================
@@ -573,6 +620,433 @@ def MTGNN_grid_search(
         print(f"\n💾 Resumo completo salvo em: {filename}")
         print(f"{'='*80}\n")
 
+        return all_results, best_mae, df_best
+    else:
+        print("❌ Nenhum resultado obtido!")
+        return [], None, None
+
+
+# ============================================
+# DGCRN - GRID SEARCH PADRONIZADO
+# ============================================
+
+def DGCRN_train_with_mlflow(
+    params,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes,
+    experiment_name="DGCRN_Traffic",
+    device='cpu'
+):
+    """Treina modelo DGCRN com tracking do MLflow"""
+
+    mlflow.set_experiment(experiment_name)
+
+    with mlflow.start_run():
+        mlflow.log_params(params)
+        mlflow.log_param("device", device)
+        mlflow.log_param("num_nodes", num_nodes)
+
+        model = DGCRN(
+            adj_mx=adj_mx,
+            num_nodes=num_nodes,
+            input_dim=params['input_dim'],
+            hidden_dim=params['hidden_dim'],
+            output_dim=params['output_dim'],
+            seq_len=params['seq_len'],
+            horizon=params['horizon'],
+            node_dim=params.get('node_dim', 16),
+            gcn_depth=params.get('gcn_depth', 2),
+            dropout=params.get('dropout', 0.1),
+            lr=params.get('lr', 1e-3),
+            weight_decay=params.get('weight_decay', 1e-4),
+            epochs=params.get('epochs', 50),
+            patience=params.get('patience', 10),
+            device=device
+        )
+
+        print("\nIniciando treinamento do DGCRN...")
+        model.fit(train_loader, val_loader)
+
+        test_loss = model.evaluate(test_loader)
+        mlflow.log_metric("test_loss", test_loss)
+
+        preds = model.predict(test_loader)
+        Y_test = torch.cat([y for _, y in test_loader], dim=0)
+
+        mae = torch.mean(torch.abs(preds - Y_test)).item()
+        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
+        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+
+        mlflow.log_metric("test_mae", mae)
+        mlflow.log_metric("test_rmse", rmse)
+        mlflow.log_metric("test_mape", mape.item())
+
+        print(f"Test Loss: {test_loss:.4f}")
+        print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
+
+        mlflow.pytorch.log_model(model, "dgcrn_model")
+        return test_loss, mae, rmse, mape.item()
+
+
+def DGCRN_grid_search(
+    param_grid,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes,
+    experiment_name="DGCRN_GridSearch",
+    device='cpu'
+):
+    """Executa grid search padronizado para DGCRN"""
+
+    keys = param_grid.keys()
+    values = param_grid.values()
+    all_results = []
+
+    for combination in product(*values):
+        params = dict(zip(keys, combination))
+
+        print(f"\n{'='*60}")
+        print(f"Testando combinação: {params}")
+        print(f"{'='*60}")
+
+        try:
+            test_loss, mae, rmse, mape = DGCRN_train_with_mlflow(
+                params,
+                train_loader,
+                val_loader,
+                test_loader,
+                adj_mx,
+                num_nodes,
+                experiment_name=experiment_name,
+                device=device
+            )
+            all_results.append({
+                'params': params,
+                'test_loss': test_loss,
+                'mae': mae,
+                'rmse': rmse,
+                'mape': mape
+            })
+            print(f"✅ Concluído: Loss={test_loss:.4f}, MAE={mae:.4f}, RMSE={rmse:.4f}, MAPE={mape:.2f}%")
+        except Exception as e:
+            print(f"Tipo do erro: {type(e).__name__}")
+            print(f"Mensagem: {str(e)}")
+            print(f"\n{'='*60}")
+            print("TRACEBACK COMPLETO:")
+            print(f"{'='*60}")
+            traceback.print_exc()
+            continue
+
+    if all_results:
+        best_loss, best_mae, best_rmse, best_mape, df_best = _build_best_configs_dataframe(all_results)
+        print(f"\n{'='*80}")
+        print("MELHORES CONFIGURAÇÕES POR MÉTRICA:")
+        print(f"{'='*80}")
+        print("\n📊 RESUMO DAS MELHORES CONFIGURAÇÕES:\n")
+        print(df_best.to_string(index=False))
+
+        _save_grid_search_summary(
+            experiment_name=experiment_name,
+            model_name="DGCRN",
+            all_results=all_results,
+            best_loss=best_loss,
+            best_mae=best_mae,
+            best_rmse=best_rmse,
+            best_mape=best_mape,
+        )
+
+        print(f"{'='*80}\n")
+        return all_results, best_mae, df_best
+    else:
+        print("❌ Nenhum resultado obtido!")
+        return [], None, None
+
+
+# ============================================
+# STICFORMER - GRID SEARCH PADRONIZADO
+# ============================================
+
+def STICformer_train_with_mlflow(
+    params,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes,
+    experiment_name="STICformer_Traffic",
+    device='cpu'
+):
+    """Treina modelo STICformer com tracking do MLflow"""
+
+    mlflow.set_experiment(experiment_name)
+
+    with mlflow.start_run():
+        mlflow.log_params(params)
+        mlflow.log_param("device", device)
+        mlflow.log_param("num_nodes", num_nodes)
+
+        model = STICformer(
+            adj_mx=adj_mx,
+            num_nodes=num_nodes,
+            input_dim=params['input_dim'],
+            hidden_dim=params['hidden_dim'],
+            output_dim=params['output_dim'],
+            seq_len=params['seq_len'],
+            horizon=params['horizon'],
+            num_layers=params.get('num_layers', 2),
+            num_heads=params.get('num_heads', 4),
+            ff_multiplier=params.get('ff_multiplier', 2),
+            dropout=params.get('dropout', 0.1),
+            lr=params.get('lr', 1e-3),
+            weight_decay=params.get('weight_decay', 1e-4),
+            epochs=params.get('epochs', 50),
+            patience=params.get('patience', 10),
+            device=device
+        )
+
+        print("\nIniciando treinamento do STICformer...")
+        model.fit(train_loader, val_loader)
+
+        test_loss = model.evaluate(test_loader)
+        mlflow.log_metric("test_loss", test_loss)
+
+        preds = model.predict(test_loader)
+        Y_test = torch.cat([y for _, y in test_loader], dim=0)
+
+        mae = torch.mean(torch.abs(preds - Y_test)).item()
+        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
+        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+
+        mlflow.log_metric("test_mae", mae)
+        mlflow.log_metric("test_rmse", rmse)
+        mlflow.log_metric("test_mape", mape.item())
+
+        print(f"Test Loss: {test_loss:.4f}")
+        print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
+
+        mlflow.pytorch.log_model(model, "sticformer_model")
+        return test_loss, mae, rmse, mape.item()
+
+
+def STICformer_grid_search(
+    param_grid,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes,
+    experiment_name="STICformer_GridSearch",
+    device='cpu'
+):
+    """Executa grid search padronizado para STICformer"""
+
+    keys = param_grid.keys()
+    values = param_grid.values()
+    all_results = []
+
+    for combination in product(*values):
+        params = dict(zip(keys, combination))
+
+        print(f"\n{'='*60}")
+        print(f"Testando combinação: {params}")
+        print(f"{'='*60}")
+
+        try:
+            test_loss, mae, rmse, mape = STICformer_train_with_mlflow(
+                params,
+                train_loader,
+                val_loader,
+                test_loader,
+                adj_mx,
+                num_nodes,
+                experiment_name=experiment_name,
+                device=device
+            )
+            all_results.append({
+                'params': params,
+                'test_loss': test_loss,
+                'mae': mae,
+                'rmse': rmse,
+                'mape': mape
+            })
+            print(f"✅ Concluído: Loss={test_loss:.4f}, MAE={mae:.4f}, RMSE={rmse:.4f}, MAPE={mape:.2f}%")
+        except Exception as e:
+            print(f"Tipo do erro: {type(e).__name__}")
+            print(f"Mensagem: {str(e)}")
+            print(f"\n{'='*60}")
+            print("TRACEBACK COMPLETO:")
+            print(f"{'='*60}")
+            traceback.print_exc()
+            continue
+
+    if all_results:
+        best_loss, best_mae, best_rmse, best_mape, df_best = _build_best_configs_dataframe(all_results)
+        print(f"\n{'='*80}")
+        print("MELHORES CONFIGURAÇÕES POR MÉTRICA:")
+        print(f"{'='*80}")
+        print("\n📊 RESUMO DAS MELHORES CONFIGURAÇÕES:\n")
+        print(df_best.to_string(index=False))
+
+        _save_grid_search_summary(
+            experiment_name=experiment_name,
+            model_name="STICformer",
+            all_results=all_results,
+            best_loss=best_loss,
+            best_mae=best_mae,
+            best_rmse=best_rmse,
+            best_mape=best_mape,
+        )
+
+        print(f"{'='*80}\n")
+        return all_results, best_mae, df_best
+    else:
+        print("❌ Nenhum resultado obtido!")
+        return [], None, None
+
+
+# ============================================
+# PATCHSTG - GRID SEARCH PADRONIZADO
+# ============================================
+
+def PatchSTG_train_with_mlflow(
+    params,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes,
+    experiment_name="PatchSTG_Traffic",
+    device='cpu'
+):
+    """Treina modelo PatchSTG com tracking do MLflow"""
+
+    mlflow.set_experiment(experiment_name)
+
+    with mlflow.start_run():
+        mlflow.log_params(params)
+        mlflow.log_param("device", device)
+        mlflow.log_param("num_nodes", num_nodes)
+
+        model = PatchSTG(
+            adj_mx=adj_mx,
+            num_nodes=num_nodes,
+            input_dim=params['input_dim'],
+            hidden_dim=params['hidden_dim'],
+            output_dim=params['output_dim'],
+            seq_len=params['seq_len'],
+            horizon=params['horizon'],
+            patch_len=params.get('patch_len', 4),
+            patch_stride=params.get('patch_stride', 2),
+            num_layers=params.get('num_layers', 2),
+            num_heads=params.get('num_heads', 4),
+            ff_multiplier=params.get('ff_multiplier', 2),
+            dropout=params.get('dropout', 0.1),
+            lr=params.get('lr', 1e-3),
+            weight_decay=params.get('weight_decay', 1e-4),
+            epochs=params.get('epochs', 50),
+            patience=params.get('patience', 10),
+            device=device
+        )
+
+        print("\nIniciando treinamento do PatchSTG...")
+        model.fit(train_loader, val_loader)
+
+        test_loss = model.evaluate(test_loader)
+        mlflow.log_metric("test_loss", test_loss)
+
+        preds = model.predict(test_loader)
+        Y_test = torch.cat([y for _, y in test_loader], dim=0)
+
+        mae = torch.mean(torch.abs(preds - Y_test)).item()
+        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
+        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+
+        mlflow.log_metric("test_mae", mae)
+        mlflow.log_metric("test_rmse", rmse)
+        mlflow.log_metric("test_mape", mape.item())
+
+        print(f"Test Loss: {test_loss:.4f}")
+        print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
+
+        mlflow.pytorch.log_model(model, "patchstg_model")
+        return test_loss, mae, rmse, mape.item()
+
+
+def PatchSTG_grid_search(
+    param_grid,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes,
+    experiment_name="PatchSTG_GridSearch",
+    device='cpu'
+):
+    """Executa grid search padronizado para PatchSTG"""
+
+    keys = param_grid.keys()
+    values = param_grid.values()
+    all_results = []
+
+    for combination in product(*values):
+        params = dict(zip(keys, combination))
+
+        print(f"\n{'='*60}")
+        print(f"Testando combinação: {params}")
+        print(f"{'='*60}")
+
+        try:
+            test_loss, mae, rmse, mape = PatchSTG_train_with_mlflow(
+                params,
+                train_loader,
+                val_loader,
+                test_loader,
+                adj_mx,
+                num_nodes,
+                experiment_name=experiment_name,
+                device=device
+            )
+            all_results.append({
+                'params': params,
+                'test_loss': test_loss,
+                'mae': mae,
+                'rmse': rmse,
+                'mape': mape
+            })
+            print(f"✅ Concluído: Loss={test_loss:.4f}, MAE={mae:.4f}, RMSE={rmse:.4f}, MAPE={mape:.2f}%")
+        except Exception as e:
+            print(f"Tipo do erro: {type(e).__name__}")
+            print(f"Mensagem: {str(e)}")
+            print(f"\n{'='*60}")
+            print("TRACEBACK COMPLETO:")
+            print(f"{'='*60}")
+            traceback.print_exc()
+            continue
+
+    if all_results:
+        best_loss, best_mae, best_rmse, best_mape, df_best = _build_best_configs_dataframe(all_results)
+        print(f"\n{'='*80}")
+        print("MELHORES CONFIGURAÇÕES POR MÉTRICA:")
+        print(f"{'='*80}")
+        print("\n📊 RESUMO DAS MELHORES CONFIGURAÇÕES:\n")
+        print(df_best.to_string(index=False))
+
+        _save_grid_search_summary(
+            experiment_name=experiment_name,
+            model_name="PatchSTG",
+            all_results=all_results,
+            best_loss=best_loss,
+            best_mae=best_mae,
+            best_rmse=best_rmse,
+            best_mape=best_mape,
+        )
+
+        print(f"{'='*80}\n")
         return all_results, best_mae, df_best
     else:
         print("❌ Nenhum resultado obtido!")
