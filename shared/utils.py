@@ -198,7 +198,7 @@ def save_filtered_graph(original_graph: nx.Graph,
     else:
         raise ValueError(f"Formato não suportado: {ext}")
     
-    nx.write_graphml(filtered_graph, f"../dataset/GraphML/{filtered_graph_out_name}.GraphML")
+    nx.write_graphml(filtered_graph, f"../data/GraphML/{filtered_graph_out_name}.GraphML")
     
     print(f"  Nós originais: {len(original_graph.nodes())}")
     print(f"  Arestas originais: {len(original_graph.edges())}")
@@ -206,7 +206,7 @@ def save_filtered_graph(original_graph: nx.Graph,
     print(f"  Arestas filtradas: {len(filtered_graph.edges())}")
     print(f"  Redução: {(1 - len(filtered_graph.edges())/len(original_graph.edges()))*100:.1f}%")
 
-def generate_graph_from_adjmx_nx(path: str, name, outputPath = "dataset/GraphML", ) -> nx.Graph:
+def generate_graph_from_adjmx_nx(path: str, name, outputPath = "data/GraphML", ) -> nx.Graph:
     path = Path(path)
     ext = path.suffix.lower()
     if ext == ".pkl":
