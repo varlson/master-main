@@ -11,7 +11,7 @@ import torch
 # ============================================
 
 BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR / "dataset"
+DATA_DIR = BASE_DIR / "data"
 H5_DIR = DATA_DIR / "h5"
 NPY_DIR = DATA_DIR / "npy"
 PKL_DIR = DATA_DIR / "pkl"

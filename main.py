@@ -40,6 +40,7 @@ HORIZON = int(os.getenv("HORIZON", "12"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "8"))
 
 RUN_DCRNN = os.getenv("RUN_DCRNN", "1") == "1"
+EPOCHS = int(os.getenv("EPOCHS", "5"))
 RUN_GRAPH_WAVENET = os.getenv("RUN_GRAPH_WAVENET", "1") == "1"
 RUN_MTGNN = os.getenv("RUN_MTGNN", "1") == "1"
 RUN_DGCRN = os.getenv("RUN_DGCRN", "1") == "1"
@@ -102,7 +103,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dic
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [2],
+        "epochs": [EPOCHS],
         "patience": [5],
         "use_scheduled_sampling": [False],
         "teacher_forcing_ratio": [0.5],
@@ -120,7 +121,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dic
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [2],
+        "epochs": [EPOCHS],
         "patience": [5],
     }
 
@@ -139,7 +140,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dic
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [2],
+        "epochs": [EPOCHS],
         "patience": [5],
     }
 
@@ -154,7 +155,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dic
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [2],
+        "epochs": [EPOCHS],
         "patience": [5],
     }
 
@@ -170,7 +171,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dic
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [2],
+        "epochs": [EPOCHS],
         "patience": [5],
     }
 
@@ -188,7 +189,7 @@ def build_param_grids(seq_len: int, horizon: int) -> tuple[dict, dict, dict, dic
         "dropout": [0.1],
         "lr": [1e-3],
         "weight_decay": [1e-4],
-        "epochs": [2],
+        "epochs": [EPOCHS],
         "patience": [5],
     }
 

@@ -1,0 +1,123 @@
+{
+  "timestamp": "2026-03-04T01:50:11.459929",
+  "experiment_name": "metr-la_PatchSTG_20260303_202038",
+  "model": "PatchSTG",
+  "total_configs": 1,
+  "best_by_loss": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "patch_len": 4,
+      "patch_stride": 2,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.37676258111891686,
+    "mae": 0.30853819847106934,
+    "rmse": 0.6138098835945129,
+    "mape": 115.21856689453125
+  },
+  "best_by_mae": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "patch_len": 4,
+      "patch_stride": 2,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.37676258111891686,
+    "mae": 0.30853819847106934,
+    "rmse": 0.6138098835945129,
+    "mape": 115.21856689453125
+  },
+  "best_by_rmse": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "patch_len": 4,
+      "patch_stride": 2,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.37676258111891686,
+    "mae": 0.30853819847106934,
+    "rmse": 0.6138098835945129,
+    "mape": 115.21856689453125
+  },
+  "best_by_mape": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "patch_len": 4,
+      "patch_stride": 2,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.37676258111891686,
+    "mae": 0.30853819847106934,
+    "rmse": 0.6138098835945129,
+    "mape": 115.21856689453125
+  },
+  "all_results": [
+    {
+      "params": {
+        "input_dim": 1,
+        "hidden_dim": 64,
+        "output_dim": 1,
+        "seq_len": 12,
+        "horizon": 12,
+        "patch_len": 4,
+        "patch_stride": 2,
+        "num_layers": 2,
+        "num_heads": 4,
+        "ff_multiplier": 2,
+        "dropout": 0.1,
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 30,
+        "patience": 5
+      },
+      "test_loss": 0.37676258111891686,
+      "mae": 0.30853819847106934,
+      "rmse": 0.6138098835945129,
+      "mape": 115.21856689453125
+    }
+  ]
+}

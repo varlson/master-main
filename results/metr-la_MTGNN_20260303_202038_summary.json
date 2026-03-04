@@ -1,0 +1,128 @@
+{
+  "timestamp": "2026-03-04T01:05:27.227823",
+  "experiment_name": "metr-la_MTGNN_20260303_202038",
+  "model": "MTGNN",
+  "total_configs": 1,
+  "best_by_loss": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.40278257184664107,
+    "mae": 0.3433498442173004,
+    "rmse": 0.6346515417098999,
+    "mape": 123.82829284667969
+  },
+  "best_by_mae": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.40278257184664107,
+    "mae": 0.3433498442173004,
+    "rmse": 0.6346515417098999,
+    "mape": 123.82829284667969
+  },
+  "best_by_rmse": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.40278257184664107,
+    "mae": 0.3433498442173004,
+    "rmse": 0.6346515417098999,
+    "mape": 123.82829284667969
+  },
+  "best_by_mape": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.40278257184664107,
+    "mae": 0.3433498442173004,
+    "rmse": 0.6346515417098999,
+    "mape": 123.82829284667969
+  },
+  "all_results": [
+    {
+      "params": {
+        "input_dim": 1,
+        "hidden_dim": 64,
+        "output_dim": 1,
+        "seq_len": 12,
+        "horizon": 12,
+        "num_blocks": 3,
+        "kernel_size": 2,
+        "dilation_base": 2,
+        "gcn_depth": 2,
+        "propalpha": 0.05,
+        "node_dim": 16,
+        "dropout": 0.1,
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 30,
+        "patience": 5
+      },
+      "test_loss": 0.40278257184664107,
+      "mae": 0.3433498442173004,
+      "rmse": 0.6346515417098999,
+      "mape": 123.82829284667969
+    }
+  ]
+}

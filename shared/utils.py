@@ -10,7 +10,7 @@ DCRNN com MLflow - Versão Otimizada
 Inclui: tracking de experimentos, grid search, early stopping
 """
 
-import gdown
+# import gdown
 import numpy as np
 import networkx as nx
 import matplotlib.pylab as plt

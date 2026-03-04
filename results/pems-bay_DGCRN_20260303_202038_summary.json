@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-03-03T23:05:01.565768",
+  "experiment_name": "pems-bay_DGCRN_20260303_202038",
+  "model": "DGCRN",
+  "total_configs": 1,
+  "best_by_loss": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "node_dim": 16,
+      "gcn_depth": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.22795766893828676,
+    "mae": 0.2330973893404007,
+    "rmse": 0.4775804877281189,
+    "mape": 145.44119262695312
+  },
+  "best_by_mae": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "node_dim": 16,
+      "gcn_depth": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.22795766893828676,
+    "mae": 0.2330973893404007,
+    "rmse": 0.4775804877281189,
+    "mape": 145.44119262695312
+  },
+  "best_by_rmse": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "node_dim": 16,
+      "gcn_depth": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.22795766893828676,
+    "mae": 0.2330973893404007,
+    "rmse": 0.4775804877281189,
+    "mape": 145.44119262695312
+  },
+  "best_by_mape": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "node_dim": 16,
+      "gcn_depth": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 30,
+      "patience": 5
+    },
+    "test_loss": 0.22795766893828676,
+    "mae": 0.2330973893404007,
+    "rmse": 0.4775804877281189,
+    "mape": 145.44119262695312
+  },
+  "all_results": [
+    {
+      "params": {
+        "input_dim": 1,
+        "hidden_dim": 64,
+        "output_dim": 1,
+        "seq_len": 12,
+        "horizon": 12,
+        "node_dim": 16,
+        "gcn_depth": 2,
+        "dropout": 0.1,
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 30,
+        "patience": 5
+      },
+      "test_loss": 0.22795766893828676,
+      "mae": 0.2330973893404007,
+      "rmse": 0.4775804877281189,
+      "mape": 145.44119262695312
+    }
+  ]
+}
