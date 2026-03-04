@@ -174,6 +174,9 @@ SEQ_LEN=12 HORIZON=12 BATCH_SIZE=32 python3 main.py
 - `RUN_DGCRN`: `1`/`0`
 - `RUN_STICFORMER`: `1`/`0`
 - `RUN_PATCHSTG`: `1`/`0`
+- `GENERATE_PLOTS`: `1`/`0` (gera diagnosticos visuais por experimento)
+- `PLOTS_NUM_NODES`: quantidade de nos no grafico "Real vs Previsto"
+- `PLOTS_MAX_TIME_POINTS`: limite de pontos no eixo temporal (linhas/heatmap)
 
 ## Fluxo do Pipeline
 
@@ -209,6 +212,20 @@ Onde `<scope>` pode ser:
 - `pems-bay`
 - `metr-la`
 - `all-datasets`
+
+### Diagnosticos Visuais (por experimento)
+
+Gerados automaticamente por `shared/visualization.py` quando `GENERATE_PLOTS=1`:
+
+- `results/plots/<experiment_name>/overall_metrics.json`
+- `results/plots/<experiment_name>/metrics_by_horizon.csv`
+- `results/plots/<experiment_name>/metrics_by_node.csv`
+- `results/plots/<experiment_name>/real_vs_pred_nodes.png`
+- `results/plots/<experiment_name>/metrics_by_horizon.png`
+- `results/plots/<experiment_name>/metrics_by_node.png`
+- `results/plots/<experiment_name>/error_over_time.png`
+- `results/plots/<experiment_name>/train_val_curves.png` (quando houver historico de treino)
+- `results/plots/<experiment_name>/error_heatmap_node_time.png`
 
 ## MLflow
 

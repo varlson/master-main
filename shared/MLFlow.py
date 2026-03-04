@@ -10,10 +10,14 @@ import mlflow.pytorch
 from itertools import product
 import json
 from datetime import datetime
+from pathlib import Path
 import pandas as pd
+import numpy as np
 import traceback
 import sys
 import os
+from shared.loaders import denormalize_predictions
+from shared.visualization import generate_model_diagnostics
 
 
 def _build_best_configs_dataframe(all_results):
@@ -59,6 +63,81 @@ def _save_grid_search_summary(experiment_name, model_name, all_results, best_los
     print(f"\n💾 Resumo completo salvo em: {filename}")
 
 
+def _extract_dataset_name(experiment_name: str) -> str:
+    parts = experiment_name.split("_")
+    if len(parts) >= 3:
+        return parts[0]
+    return "unknown"
+
+
+def _collect_predictions(model, test_loader):
+    preds = model.predict(test_loader).detach().cpu().float()
+    y_test = torch.cat([y for _, y in test_loader], dim=0).detach().cpu().float()
+    return preds, y_test
+
+
+def _compute_metrics(preds: torch.Tensor, y_test: torch.Tensor) -> tuple[float, float, float]:
+    mae = torch.mean(torch.abs(preds - y_test)).item()
+    rmse = torch.sqrt(torch.mean((preds - y_test) ** 2)).item()
+    mape = (
+        torch.mean(torch.abs((y_test - preds) / (torch.abs(y_test) + 1e-8))) * 100.0
+    ).item()
+    return mae, rmse, mape
+
+
+def _to_numpy_for_visualization(
+    preds: torch.Tensor, y_test: torch.Tensor, normalization_stats: dict | None
+) -> tuple[np.ndarray, np.ndarray]:
+    preds_np = preds.numpy()
+    y_np = y_test.numpy()
+
+    if normalization_stats:
+        preds_np = denormalize_predictions(preds_np, normalization_stats)
+        y_np = denormalize_predictions(y_np, normalization_stats)
+
+    return preds_np, y_np
+
+
+def _generate_and_log_plots(
+    *,
+    preds: torch.Tensor,
+    y_test: torch.Tensor,
+    model,
+    model_name: str,
+    experiment_name: str,
+    normalization_stats: dict | None,
+    generate_plots: bool,
+    num_nodes_to_plot: int,
+    max_time_points: int,
+) -> None:
+    if not generate_plots:
+        return
+
+    dataset_name = _extract_dataset_name(experiment_name)
+    plot_dir = Path("results") / "plots" / experiment_name
+    train_losses = getattr(model, "train_losses", []) or []
+    val_losses = getattr(model, "val_losses", []) or []
+
+    preds_np, y_np = _to_numpy_for_visualization(preds, y_test, normalization_stats)
+
+    report = generate_model_diagnostics(
+        predictions=preds_np,
+        targets=y_np,
+        output_dir=plot_dir,
+        model_name=model_name,
+        dataset_name=dataset_name,
+        experiment_name=experiment_name,
+        train_losses=train_losses,
+        val_losses=val_losses,
+        num_nodes_to_plot=num_nodes_to_plot,
+        horizon_for_line_and_heatmap=0,
+        max_points_line=max(150, max_time_points),
+        max_time_points_heatmap=max_time_points,
+    )
+    mlflow.log_artifacts(str(plot_dir), artifact_path="plots")
+    print(f"📈 Plots salvos em: {report['output_dir']}")
+
+
 # ============================================
 # GRAPH WAVENET - GRID SEARCH PADRONIZADO
 # ============================================
@@ -71,7 +150,11 @@ def GraphWaveNet_train_with_mlflow(
     adj_mx,
     num_nodes,
     experiment_name="GraphWaveNet_Experiments",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Treina modelo Graph WaveNet com tracking do MLflow"""
     
@@ -111,28 +194,23 @@ def GraphWaveNet_train_with_mlflow(
         test_loss = model.evaluate(test_loader)
         mlflow.log_metric("test_loss", test_loss)
         
-        # Calcular métricas adicionais
-        model.eval()
-        predictions = []
-        ground_truth = []
-        
-        with torch.no_grad():
-            for X, Y in test_loader:
-                X, Y = X.to(device), Y.to(device)
-                Y_pred = model.forward(X)
-                predictions.append(Y_pred.cpu())
-                ground_truth.append(Y.cpu())
-        
-        predictions = torch.cat(predictions, dim=0)
-        ground_truth = torch.cat(ground_truth, dim=0)
-        
-        mae = torch.mean(torch.abs(predictions - ground_truth)).item()
-        rmse = torch.sqrt(torch.mean((predictions - ground_truth) ** 2)).item()
-        mape = torch.mean(torch.abs((ground_truth - predictions) / (ground_truth + 1e-8))) * 100
+        preds, y_test = _collect_predictions(model, test_loader)
+        mae, rmse, mape = _compute_metrics(preds, y_test)
+        _generate_and_log_plots(
+            preds=preds,
+            y_test=y_test,
+            model=model,
+            model_name="GraphWaveNet",
+            experiment_name=experiment_name,
+            normalization_stats=normalization_stats,
+            generate_plots=generate_plots,
+            num_nodes_to_plot=num_nodes_to_plot,
+            max_time_points=max_time_points,
+        )
         
         mlflow.log_metric("test_mae", mae)
         mlflow.log_metric("test_rmse", rmse)
-        mlflow.log_metric("test_mape", mape.item())
+        mlflow.log_metric("test_mape", mape)
         
         print(f"Test Loss: {test_loss:.4f}")
         print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
@@ -140,7 +218,7 @@ def GraphWaveNet_train_with_mlflow(
         # Salvar modelo no MLflow
         mlflow.pytorch.log_model(model, "graph_wavenet_model")
         
-        return test_loss, mae, rmse, mape.item()
+        return test_loss, mae, rmse, mape
 
 
 def GraphWaveNet_grid_search(
@@ -151,7 +229,11 @@ def GraphWaveNet_grid_search(
     adj_mx,
     num_nodes,
     experiment_name="GraphWaveNet_GridSearch",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Executa grid search padronizado para Graph WaveNet"""
     
@@ -176,7 +258,11 @@ def GraphWaveNet_grid_search(
                 adj_mx,
                 num_nodes,
                 experiment_name=experiment_name,
-                device=device
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
             )
             
             all_results.append({
@@ -269,7 +355,11 @@ def DCRNN_train_with_mlflow(
     adj_mx,
     num_nodes,
     experiment_name="DCRNN_Traffic",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Treina modelo DCRNN com tracking do MLflow"""
     
@@ -311,17 +401,23 @@ def DCRNN_train_with_mlflow(
         test_loss = model.evaluate(test_loader)
         mlflow.log_metric("test_loss", test_loss)
         
-        # Calcular métricas adicionais
-        preds = model.predict(test_loader)
-        Y_test = torch.cat([y for _, y in test_loader], dim=0)
-        
-        mae = torch.mean(torch.abs(preds - Y_test)).item()
-        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
-        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+        preds, y_test = _collect_predictions(model, test_loader)
+        mae, rmse, mape = _compute_metrics(preds, y_test)
+        _generate_and_log_plots(
+            preds=preds,
+            y_test=y_test,
+            model=model,
+            model_name="DCRNN",
+            experiment_name=experiment_name,
+            normalization_stats=normalization_stats,
+            generate_plots=generate_plots,
+            num_nodes_to_plot=num_nodes_to_plot,
+            max_time_points=max_time_points,
+        )
         
         mlflow.log_metric("test_mae", mae)
         mlflow.log_metric("test_rmse", rmse)
-        mlflow.log_metric("test_mape", mape.item())
+        mlflow.log_metric("test_mape", mape)
         
         print(f"Test Loss: {test_loss:.4f}")
         print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
@@ -329,7 +425,7 @@ def DCRNN_train_with_mlflow(
         # Salvar modelo no MLflow
         mlflow.pytorch.log_model(model, "dcrnn_model")
         
-        return test_loss, mae, rmse, mape.item()
+        return test_loss, mae, rmse, mape
 
 
 def DCRNN_grid_search(
@@ -340,7 +436,11 @@ def DCRNN_grid_search(
     adj_mx,
     num_nodes,
     experiment_name="DCRNN_GridSearch",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Executa grid search padronizado para DCRNN"""
     
@@ -365,7 +465,11 @@ def DCRNN_grid_search(
                 adj_mx,
                 num_nodes,
                 experiment_name,
-                device=device
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
             )
             
             all_results.append({
@@ -460,7 +564,11 @@ def MTGNN_train_with_mlflow(
     adj_mx,
     num_nodes,
     experiment_name="MTGNN_Traffic",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Treina modelo MTGNN com tracking do MLflow"""
 
@@ -499,23 +607,30 @@ def MTGNN_train_with_mlflow(
         test_loss = model.evaluate(test_loader)
         mlflow.log_metric("test_loss", test_loss)
 
-        preds = model.predict(test_loader)
-        Y_test = torch.cat([y for _, y in test_loader], dim=0)
-
-        mae = torch.mean(torch.abs(preds - Y_test)).item()
-        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
-        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+        preds, y_test = _collect_predictions(model, test_loader)
+        mae, rmse, mape = _compute_metrics(preds, y_test)
+        _generate_and_log_plots(
+            preds=preds,
+            y_test=y_test,
+            model=model,
+            model_name="MTGNN",
+            experiment_name=experiment_name,
+            normalization_stats=normalization_stats,
+            generate_plots=generate_plots,
+            num_nodes_to_plot=num_nodes_to_plot,
+            max_time_points=max_time_points,
+        )
 
         mlflow.log_metric("test_mae", mae)
         mlflow.log_metric("test_rmse", rmse)
-        mlflow.log_metric("test_mape", mape.item())
+        mlflow.log_metric("test_mape", mape)
 
         print(f"Test Loss: {test_loss:.4f}")
         print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
 
         mlflow.pytorch.log_model(model, "mtgnn_model")
 
-        return test_loss, mae, rmse, mape.item()
+        return test_loss, mae, rmse, mape
 
 
 def MTGNN_grid_search(
@@ -526,7 +641,11 @@ def MTGNN_grid_search(
     adj_mx,
     num_nodes,
     experiment_name="MTGNN_GridSearch",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Executa grid search padronizado para MTGNN"""
 
@@ -551,7 +670,11 @@ def MTGNN_grid_search(
                 adj_mx,
                 num_nodes,
                 experiment_name=experiment_name,
-                device=device
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
             )
 
             all_results.append({
@@ -638,7 +761,11 @@ def DGCRN_train_with_mlflow(
     adj_mx,
     num_nodes,
     experiment_name="DGCRN_Traffic",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Treina modelo DGCRN com tracking do MLflow"""
 
@@ -673,22 +800,29 @@ def DGCRN_train_with_mlflow(
         test_loss = model.evaluate(test_loader)
         mlflow.log_metric("test_loss", test_loss)
 
-        preds = model.predict(test_loader)
-        Y_test = torch.cat([y for _, y in test_loader], dim=0)
-
-        mae = torch.mean(torch.abs(preds - Y_test)).item()
-        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
-        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+        preds, y_test = _collect_predictions(model, test_loader)
+        mae, rmse, mape = _compute_metrics(preds, y_test)
+        _generate_and_log_plots(
+            preds=preds,
+            y_test=y_test,
+            model=model,
+            model_name="DGCRN",
+            experiment_name=experiment_name,
+            normalization_stats=normalization_stats,
+            generate_plots=generate_plots,
+            num_nodes_to_plot=num_nodes_to_plot,
+            max_time_points=max_time_points,
+        )
 
         mlflow.log_metric("test_mae", mae)
         mlflow.log_metric("test_rmse", rmse)
-        mlflow.log_metric("test_mape", mape.item())
+        mlflow.log_metric("test_mape", mape)
 
         print(f"Test Loss: {test_loss:.4f}")
         print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
 
         mlflow.pytorch.log_model(model, "dgcrn_model")
-        return test_loss, mae, rmse, mape.item()
+        return test_loss, mae, rmse, mape
 
 
 def DGCRN_grid_search(
@@ -699,7 +833,11 @@ def DGCRN_grid_search(
     adj_mx,
     num_nodes,
     experiment_name="DGCRN_GridSearch",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Executa grid search padronizado para DGCRN"""
 
@@ -723,7 +861,11 @@ def DGCRN_grid_search(
                 adj_mx,
                 num_nodes,
                 experiment_name=experiment_name,
-                device=device
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
             )
             all_results.append({
                 'params': params,
@@ -779,7 +921,11 @@ def STICformer_train_with_mlflow(
     adj_mx,
     num_nodes,
     experiment_name="STICformer_Traffic",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Treina modelo STICformer com tracking do MLflow"""
 
@@ -815,22 +961,29 @@ def STICformer_train_with_mlflow(
         test_loss = model.evaluate(test_loader)
         mlflow.log_metric("test_loss", test_loss)
 
-        preds = model.predict(test_loader)
-        Y_test = torch.cat([y for _, y in test_loader], dim=0)
-
-        mae = torch.mean(torch.abs(preds - Y_test)).item()
-        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
-        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+        preds, y_test = _collect_predictions(model, test_loader)
+        mae, rmse, mape = _compute_metrics(preds, y_test)
+        _generate_and_log_plots(
+            preds=preds,
+            y_test=y_test,
+            model=model,
+            model_name="STICformer",
+            experiment_name=experiment_name,
+            normalization_stats=normalization_stats,
+            generate_plots=generate_plots,
+            num_nodes_to_plot=num_nodes_to_plot,
+            max_time_points=max_time_points,
+        )
 
         mlflow.log_metric("test_mae", mae)
         mlflow.log_metric("test_rmse", rmse)
-        mlflow.log_metric("test_mape", mape.item())
+        mlflow.log_metric("test_mape", mape)
 
         print(f"Test Loss: {test_loss:.4f}")
         print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
 
         mlflow.pytorch.log_model(model, "sticformer_model")
-        return test_loss, mae, rmse, mape.item()
+        return test_loss, mae, rmse, mape
 
 
 def STICformer_grid_search(
@@ -841,7 +994,11 @@ def STICformer_grid_search(
     adj_mx,
     num_nodes,
     experiment_name="STICformer_GridSearch",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Executa grid search padronizado para STICformer"""
 
@@ -865,7 +1022,11 @@ def STICformer_grid_search(
                 adj_mx,
                 num_nodes,
                 experiment_name=experiment_name,
-                device=device
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
             )
             all_results.append({
                 'params': params,
@@ -921,7 +1082,11 @@ def PatchSTG_train_with_mlflow(
     adj_mx,
     num_nodes,
     experiment_name="PatchSTG_Traffic",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Treina modelo PatchSTG com tracking do MLflow"""
 
@@ -959,22 +1124,29 @@ def PatchSTG_train_with_mlflow(
         test_loss = model.evaluate(test_loader)
         mlflow.log_metric("test_loss", test_loss)
 
-        preds = model.predict(test_loader)
-        Y_test = torch.cat([y for _, y in test_loader], dim=0)
-
-        mae = torch.mean(torch.abs(preds - Y_test)).item()
-        rmse = torch.sqrt(torch.mean((preds - Y_test) ** 2)).item()
-        mape = torch.mean(torch.abs((Y_test - preds) / (Y_test + 1e-8))) * 100
+        preds, y_test = _collect_predictions(model, test_loader)
+        mae, rmse, mape = _compute_metrics(preds, y_test)
+        _generate_and_log_plots(
+            preds=preds,
+            y_test=y_test,
+            model=model,
+            model_name="PatchSTG",
+            experiment_name=experiment_name,
+            normalization_stats=normalization_stats,
+            generate_plots=generate_plots,
+            num_nodes_to_plot=num_nodes_to_plot,
+            max_time_points=max_time_points,
+        )
 
         mlflow.log_metric("test_mae", mae)
         mlflow.log_metric("test_rmse", rmse)
-        mlflow.log_metric("test_mape", mape.item())
+        mlflow.log_metric("test_mape", mape)
 
         print(f"Test Loss: {test_loss:.4f}")
         print(f"MAE: {mae:.4f}, RMSE: {rmse:.4f}, MAPE: {mape:.2f}%")
 
         mlflow.pytorch.log_model(model, "patchstg_model")
-        return test_loss, mae, rmse, mape.item()
+        return test_loss, mae, rmse, mape
 
 
 def PatchSTG_grid_search(
@@ -985,7 +1157,11 @@ def PatchSTG_grid_search(
     adj_mx,
     num_nodes,
     experiment_name="PatchSTG_GridSearch",
-    device='cpu'
+    device='cpu',
+    normalization_stats=None,
+    generate_plots=True,
+    num_nodes_to_plot=4,
+    max_time_points=350,
 ):
     """Executa grid search padronizado para PatchSTG"""
 
@@ -1009,7 +1185,11 @@ def PatchSTG_grid_search(
                 adj_mx,
                 num_nodes,
                 experiment_name=experiment_name,
-                device=device
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
             )
             all_results.append({
                 'params': params,

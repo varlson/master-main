@@ -46,6 +46,9 @@ RUN_MTGNN = os.getenv("RUN_MTGNN", "1") == "1"
 RUN_DGCRN = os.getenv("RUN_DGCRN", "1") == "1"
 RUN_STICFORMER = os.getenv("RUN_STICFORMER", "1") == "1"
 RUN_PATCHSTG = os.getenv("RUN_PATCHSTG", "1") == "1"
+GENERATE_PLOTS = os.getenv("GENERATE_PLOTS", "1") == "1"
+PLOTS_NUM_NODES = int(os.getenv("PLOTS_NUM_NODES", "4"))
+PLOTS_MAX_TIME_POINTS = int(os.getenv("PLOTS_MAX_TIME_POINTS", "350"))
 
 RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -231,6 +234,10 @@ def run_model_experiment(
         num_nodes=num_nodes,
         experiment_name=experiment_name,
         device=DEVICE,
+        normalization_stats=normalization_stats,
+        generate_plots=GENERATE_PLOTS,
+        num_nodes_to_plot=PLOTS_NUM_NODES,
+        max_time_points=PLOTS_MAX_TIME_POINTS,
     )
 
     if df_best is None or df_best.empty:

@@ -145,6 +145,8 @@ class DCRNN(nn.Module):
         self.train()
         best_val_loss = float('inf')
         patience_counter = 0
+        self.train_losses = []
+        self.val_losses = []
         
         for epoch in range(self.epochs):
             epoch_loss = 0.0
@@ -166,6 +168,7 @@ class DCRNN(nn.Module):
                 epoch_loss += loss.item()
 
             avg_loss = epoch_loss / len(train_loader)
+            self.train_losses.append(float(avg_loss))
             
             mlflow.log_metric("train_loss", avg_loss, step=epoch)
             mlflow.log_metric("learning_rate", self.optimizer.param_groups[0]['lr'], step=epoch)
@@ -174,6 +177,7 @@ class DCRNN(nn.Module):
 
             if val_loader:
                 val_loss = self.evaluate(val_loader)
+                self.val_losses.append(float(val_loss))
                 mlflow.log_metric("val_loss", val_loss, step=epoch)
                 print(f"   Val Loss: {val_loss:.4f}")
                 

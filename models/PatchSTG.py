@@ -148,6 +148,8 @@ class PatchSTG(nn.Module):
         best_val_loss = float("inf")
         patience_counter = 0
         best_model_path = "best_model_patchstg.pth"
+        self.train_losses = []
+        self.val_losses = []
 
         for epoch in range(self.epochs):
             self.train()
@@ -166,10 +168,12 @@ class PatchSTG(nn.Module):
                 epoch_loss += loss.item()
 
             avg_loss = epoch_loss / len(train_loader)
+            self.train_losses.append(float(avg_loss))
             print(f"Epoch {epoch+1}/{self.epochs} - Train Loss: {avg_loss:.4f}")
 
             if val_loader:
                 val_loss = self.evaluate(val_loader)
+                self.val_losses.append(float(val_loss))
                 print(f"   Val Loss: {val_loss:.4f}")
                 self.scheduler.step(val_loss)
 
