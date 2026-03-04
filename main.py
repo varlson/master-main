@@ -30,6 +30,9 @@ from shared.resultSumarization import (
 
 NPY_DIR = Path("data/npy")
 RESULTS_DIR = Path("results")
+RESULTS_CSV_DIR = RESULTS_DIR / "csv"
+RESULTS_JSON_DIR = RESULTS_DIR / "json"
+RESULTS_MD_DIR = RESULTS_DIR / "md"
 
 DATASET_NAME = os.getenv("DATASET_NAME", "pems-bay")  # ex: "pems-bay" ou "metr-la"
 DATASET_NAMES_ENV = os.getenv("DATASET_NAMES", "metr-la")
@@ -265,6 +268,9 @@ def run_model_experiment(
 
 def consolidate_outputs(experiments_data: list[dict], output_scope: str) -> None:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    RESULTS_CSV_DIR.mkdir(parents=True, exist_ok=True)
+    RESULTS_JSON_DIR.mkdir(parents=True, exist_ok=True)
+    RESULTS_MD_DIR.mkdir(parents=True, exist_ok=True)
 
     prefix = f"{output_scope}_{RUN_ID}"
     consolidated_df = consolidate_experiment_results(
@@ -292,10 +298,10 @@ def consolidate_outputs(experiments_data: list[dict], output_scope: str) -> None
     )
 
     print("\nArquivos consolidados gerados em:")
-    print(f"- {RESULTS_DIR / f'{prefix}_consolidated_experiments.csv'}")
-    print(f"- {RESULTS_DIR / f'{prefix}_consolidated_experiments.json'}")
-    print(f"- {RESULTS_DIR / f'{prefix}_comparison_report.md'}")
-    print(f"- {RESULTS_DIR / f'{prefix}_best_configs.json'}")
+    print(f"- {RESULTS_CSV_DIR / f'{prefix}_consolidated_experiments.csv'}")
+    print(f"- {RESULTS_JSON_DIR / f'{prefix}_consolidated_experiments.json'}")
+    print(f"- {RESULTS_MD_DIR / f'{prefix}_comparison_report.md'}")
+    print(f"- {RESULTS_JSON_DIR / f'{prefix}_best_configs.json'}")
 
 
 def run_dataset_pipeline(dataset_name: str) -> list[dict]:

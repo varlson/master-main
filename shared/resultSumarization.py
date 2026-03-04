@@ -9,6 +9,12 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 
+def _results_subdir(save_path: Path, folder: str) -> Path:
+    path = save_path / folder
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def consolidate_experiment_results(
     experiments_data: List[Dict],
     output_csv: str = "consolidated_experiments.csv",
@@ -34,6 +40,8 @@ def consolidate_experiment_results(
     else:
         save_path = Path(save_path)
         save_path.mkdir(parents=True, exist_ok=True)
+    csv_dir = _results_subdir(save_path, "csv")
+    json_dir = _results_subdir(save_path, "json")
     
     rows = []
     
@@ -73,7 +81,7 @@ def consolidate_experiment_results(
     df = pd.DataFrame(rows)
     
     # Salvar CSV
-    csv_path = save_path / output_csv
+    csv_path = csv_dir / output_csv
     df.to_csv(csv_path, index=False)
     print(f"✔ CSV salvo: {csv_path}")
     
@@ -95,7 +103,7 @@ def consolidate_experiment_results(
         ]
     }
     
-    json_path = save_path / output_json
+    json_path = json_dir / output_json
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(detailed, f, indent=2, ensure_ascii=False)
     
@@ -121,8 +129,9 @@ def create_comparison_report(
         save_path = Path(".")
     else:
         save_path = Path(save_path)
+    md_dir = _results_subdir(save_path, "md")
     
-    report_path = save_path / output_file
+    report_path = md_dir / output_file
     
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write("# Relatório de Comparação de Experimentos GNN\n\n")
@@ -182,6 +191,7 @@ def export_best_configs_to_json(
         save_path = Path(".")
     else:
         save_path = Path(save_path)
+    json_dir = _results_subdir(save_path, "json")
     
     best_configs = {}
     
@@ -207,7 +217,7 @@ def export_best_configs_to_json(
                     "timestamp": best_exp['timestamp']
                 }
     
-    json_path = save_path / output_file
+    json_path = json_dir / output_file
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(best_configs, f, indent=2, ensure_ascii=False)
     
@@ -236,6 +246,7 @@ def analyze_hyperparameter_impact(
         save_path = Path(".")
     else:
         save_path = Path(save_path)
+    _results_subdir(save_path, "csv")
     
     # Filtrar experimentos do modelo específico
     model_exps = [exp for exp in experiments_data if exp['model'] == model_name]

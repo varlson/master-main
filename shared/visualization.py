@@ -126,6 +126,50 @@ def _plot_real_vs_pred_for_nodes(
     _save_figure(fig, output_file)
 
 
+def _plot_scatter_real_vs_pred(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    node_indices: np.ndarray,
+    output_file: Path,
+    horizon_index: int,
+    max_points: int,
+    title_prefix: str,
+) -> None:
+    sampled = _sample_indices(y_true.shape[0], max_points)
+    n_nodes = len(node_indices)
+    cols = 2 if n_nodes > 1 else 1
+    rows = int(np.ceil(n_nodes / cols))
+
+    fig, axes = plt.subplots(rows, cols, figsize=(14, 4 * rows), squeeze=False)
+    for i, node in enumerate(node_indices):
+        ax = axes[i // cols][i % cols]
+        true_vals = y_true[sampled, horizon_index, node]
+        pred_vals = y_pred[sampled, horizon_index, node]
+
+        min_v = float(min(np.min(true_vals), np.min(pred_vals)))
+        max_v = float(max(np.max(true_vals), np.max(pred_vals)))
+        if abs(max_v - min_v) < 1e-8:
+            max_v = min_v + 1.0
+
+        ss_res = float(np.sum((true_vals - pred_vals) ** 2))
+        ss_tot = float(np.sum((true_vals - np.mean(true_vals)) ** 2))
+        r2 = 1.0 - ss_res / (ss_tot + EPS)
+
+        ax.scatter(true_vals, pred_vals, alpha=0.55, s=14, color="#1f77b4")
+        ax.plot([min_v, max_v], [min_v, max_v], color="#d62728", linestyle="--", linewidth=1.5)
+        ax.set_title(f"No {int(node)} | R²={r2:.4f}")
+        ax.set_xlabel("Real")
+        ax.set_ylabel("Previsto")
+        ax.grid(alpha=0.2)
+
+    total_axes = rows * cols
+    for j in range(n_nodes, total_axes):
+        fig.delaxes(axes[j // cols][j % cols])
+
+    fig.suptitle(f"{title_prefix} - Scatter Real vs Previsto (horizonte={horizon_index + 1})")
+    _save_figure(fig, output_file)
+
+
 def _plot_metrics_by_horizon(df_horizon: pd.DataFrame, output_file: Path, title_prefix: str) -> None:
     fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
     metrics = [("mae", "MAE"), ("rmse", "RMSE"), ("mape", "MAPE (%)")]
@@ -267,6 +311,7 @@ def generate_model_diagnostics(
     horizon_for_line_and_heatmap: int = 0,
     max_points_line: int = 500,
     max_time_points_heatmap: int = 350,
+    results_root: str | Path = "results",
 ) -> dict[str, Any]:
     """
     Gera relatorio visual de desempenho para um experimento de forecasting.
@@ -274,6 +319,11 @@ def generate_model_diagnostics(
     sns.set_theme(style="whitegrid")
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
+    results_root = Path(results_root)
+    csv_dir = results_root / "csv"
+    json_dir = results_root / "json"
+    csv_dir.mkdir(parents=True, exist_ok=True)
+    json_dir.mkdir(parents=True, exist_ok=True)
 
     y_true = _to_3d(targets)
     y_pred = _to_3d(predictions)
@@ -286,12 +336,12 @@ def generate_model_diagnostics(
     df_horizon = _metrics_by_horizon(y_true, y_pred)
     df_node = _metrics_by_node(y_true, y_pred)
 
-    overall_path = out / "overall_metrics.json"
+    overall_path = json_dir / f"{experiment_name}_overall_metrics.json"
     with open(overall_path, "w", encoding="utf-8") as f:
         json.dump(overall, f, indent=2, ensure_ascii=False)
 
-    horizon_csv = out / "metrics_by_horizon.csv"
-    node_csv = out / "metrics_by_node.csv"
+    horizon_csv = csv_dir / f"{experiment_name}_metrics_by_horizon.csv"
+    node_csv = csv_dir / f"{experiment_name}_metrics_by_node.csv"
     df_horizon.to_csv(horizon_csv, index=False)
     df_node.to_csv(node_csv, index=False)
 
@@ -299,6 +349,7 @@ def generate_model_diagnostics(
     selected_nodes = node_order[: min(num_nodes_to_plot, len(node_order))]
 
     real_vs_pred_file = out / "real_vs_pred_nodes.png"
+    scatter_file = out / "scatter_real_vs_pred.png"
     by_horizon_file = out / "metrics_by_horizon.png"
     by_node_file = out / "metrics_by_node.png"
     err_time_file = out / "error_over_time.png"
@@ -316,6 +367,15 @@ def generate_model_diagnostics(
     )
     _plot_metrics_by_horizon(df_horizon, by_horizon_file, title_prefix)
     _plot_metrics_by_node(df_node, by_node_file, title_prefix)
+    _plot_scatter_real_vs_pred(
+        y_true=y_true,
+        y_pred=y_pred,
+        node_indices=selected_nodes,
+        output_file=scatter_file,
+        horizon_index=horizon_for_line_and_heatmap,
+        max_points=max_points_line,
+        title_prefix=title_prefix,
+    )
     _plot_error_over_time(
         y_true=y_true,
         y_pred=y_pred,
@@ -345,6 +405,7 @@ def generate_model_diagnostics(
         horizon_csv,
         node_csv,
         real_vs_pred_file,
+        scatter_file,
         by_horizon_file,
         by_node_file,
         err_time_file,

@@ -197,16 +197,16 @@ Se houver mais de um dataset na execução:
 ### Sumários de Grid Search (por modelo/experimento)
 
 Gerados por `shared/MLFlow.py` em:
-- `results/<experiment_name>_summary.json`
+- `results/json/<experiment_name>_summary.json`
 
 ### Consolidação (por dataset e global)
 
 Gerados por `shared/resultSumarization.py`:
 
-- `results/<scope>_<RUN_ID>_consolidated_experiments.csv`
-- `results/<scope>_<RUN_ID>_consolidated_experiments.json`
-- `results/<scope>_<RUN_ID>_comparison_report.md`
-- `results/<scope>_<RUN_ID>_best_configs.json`
+- `results/csv/<scope>_<RUN_ID>_consolidated_experiments.csv`
+- `results/json/<scope>_<RUN_ID>_consolidated_experiments.json`
+- `results/md/<scope>_<RUN_ID>_comparison_report.md`
+- `results/json/<scope>_<RUN_ID>_best_configs.json`
 
 Onde `<scope>` pode ser:
 - `pems-bay`
@@ -217,15 +217,22 @@ Onde `<scope>` pode ser:
 
 Gerados automaticamente por `shared/visualization.py` quando `GENERATE_PLOTS=1`:
 
-- `results/plots/<experiment_name>/overall_metrics.json`
-- `results/plots/<experiment_name>/metrics_by_horizon.csv`
-- `results/plots/<experiment_name>/metrics_by_node.csv`
+- `results/json/<experiment_name>_overall_metrics.json`
+- `results/csv/<experiment_name>_metrics_by_horizon.csv`
+- `results/csv/<experiment_name>_metrics_by_node.csv`
 - `results/plots/<experiment_name>/real_vs_pred_nodes.png`
+- `results/plots/<experiment_name>/scatter_real_vs_pred.png`
 - `results/plots/<experiment_name>/metrics_by_horizon.png`
 - `results/plots/<experiment_name>/metrics_by_node.png`
 - `results/plots/<experiment_name>/error_over_time.png`
 - `results/plots/<experiment_name>/train_val_curves.png` (quando houver historico de treino)
 - `results/plots/<experiment_name>/error_heatmap_node_time.png`
+
+### Checkpoints de Melhores Modelos
+
+Durante o treino com validação, o melhor checkpoint de cada run é salvo em:
+
+- `results/best-models/<experiment_name>/<mlflow_run_id>/best_model_<model>.pth`
 
 ## MLflow
 

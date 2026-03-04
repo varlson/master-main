@@ -14,10 +14,19 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import traceback
-import sys
-import os
 from shared.loaders import denormalize_predictions
 from shared.visualization import generate_model_diagnostics
+
+
+RESULTS_DIR = Path("results")
+CSV_DIR = RESULTS_DIR / "csv"
+JSON_DIR = RESULTS_DIR / "json"
+MD_DIR = RESULTS_DIR / "md"
+PLOTS_DIR = RESULTS_DIR / "plots"
+BEST_MODELS_DIR = RESULTS_DIR / "best-models"
+
+for _dir in (RESULTS_DIR, CSV_DIR, JSON_DIR, MD_DIR, PLOTS_DIR, BEST_MODELS_DIR):
+    _dir.mkdir(parents=True, exist_ok=True)
 
 
 def _build_best_configs_dataframe(all_results):
@@ -44,7 +53,7 @@ def _build_best_configs_dataframe(all_results):
 
 
 def _save_grid_search_summary(experiment_name, model_name, all_results, best_loss, best_mae, best_rmse, best_mape):
-    os.makedirs("results", exist_ok=True)
+    JSON_DIR.mkdir(parents=True, exist_ok=True)
     results_summary = {
         "timestamp": datetime.now().isoformat(),
         "experiment_name": experiment_name,
@@ -57,7 +66,7 @@ def _save_grid_search_summary(experiment_name, model_name, all_results, best_los
         "all_results": all_results
     }
 
-    filename = f"results/{experiment_name}_summary.json"
+    filename = JSON_DIR / f"{experiment_name}_summary.json"
     with open(filename, "w") as f:
         json.dump(results_summary, f, indent=2)
     print(f"\n💾 Resumo completo salvo em: {filename}")
@@ -68,6 +77,15 @@ def _extract_dataset_name(experiment_name: str) -> str:
     if len(parts) >= 3:
         return parts[0]
     return "unknown"
+
+
+def _configure_best_model_path(model, model_name: str, experiment_name: str) -> Path:
+    run_id = mlflow.active_run().info.run_id if mlflow.active_run() else "no-run-id"
+    model_dir = BEST_MODELS_DIR / experiment_name / run_id
+    model_dir.mkdir(parents=True, exist_ok=True)
+    best_model_path = model_dir / f"best_model_{model_name.lower()}.pth"
+    model.best_model_path = str(best_model_path)
+    return best_model_path
 
 
 def _collect_predictions(model, test_loader):
@@ -114,7 +132,7 @@ def _generate_and_log_plots(
         return
 
     dataset_name = _extract_dataset_name(experiment_name)
-    plot_dir = Path("results") / "plots" / experiment_name
+    plot_dir = PLOTS_DIR / experiment_name
     train_losses = getattr(model, "train_losses", []) or []
     val_losses = getattr(model, "val_losses", []) or []
 
@@ -133,8 +151,13 @@ def _generate_and_log_plots(
         horizon_for_line_and_heatmap=0,
         max_points_line=max(150, max_time_points),
         max_time_points_heatmap=max_time_points,
+        results_root=RESULTS_DIR,
     )
     mlflow.log_artifacts(str(plot_dir), artifact_path="plots")
+    for file_path in report["generated_files"]:
+        path = Path(file_path)
+        if path.exists() and plot_dir not in path.parents:
+            mlflow.log_artifact(str(path), artifact_path=path.parent.name)
     print(f"📈 Plots salvos em: {report['output_dir']}")
 
 
@@ -185,6 +208,8 @@ def GraphWaveNet_train_with_mlflow(
             patience=params.get('patience', 10),
             device=device
         )
+        best_model_path = _configure_best_model_path(model, "GraphWaveNet", experiment_name)
+        mlflow.log_param("best_model_path", str(best_model_path))
         
         # Treinar
         print("\nIniciando treinamento do Graph WaveNet...")
@@ -330,7 +355,7 @@ def GraphWaveNet_grid_search(
             "all_results": all_results
         }
         
-        filename = f"results/{experiment_name}_summary.json"
+        filename = JSON_DIR / f"{experiment_name}_summary.json"
         with open(filename, "w") as f:
             json.dump(results_summary, f, indent=2)
         
@@ -392,6 +417,8 @@ def DCRNN_train_with_mlflow(
             use_scheduled_sampling=params.get('use_scheduled_sampling', False),
             teacher_forcing_ratio=params.get('teacher_forcing_ratio', 0.5)
         )
+        best_model_path = _configure_best_model_path(model, "DCRNN", experiment_name)
+        mlflow.log_param("best_model_path", str(best_model_path))
         
         # Treinar
         print("\nIniciando treinamento do DCRNN...")
@@ -539,7 +566,7 @@ def DCRNN_grid_search(
             "all_results": all_results
         }
         
-        filename = f"results/{experiment_name}_summary.json"
+        filename = JSON_DIR / f"{experiment_name}_summary.json"
         with open(filename, "w") as f:
             json.dump(results_summary, f, indent=2)
         
@@ -600,6 +627,8 @@ def MTGNN_train_with_mlflow(
             patience=params.get('patience', 10),
             device=device
         )
+        best_model_path = _configure_best_model_path(model, "MTGNN", experiment_name)
+        mlflow.log_param("best_model_path", str(best_model_path))
 
         print("\nIniciando treinamento do MTGNN...")
         model.fit(train_loader, val_loader)
@@ -736,7 +765,7 @@ def MTGNN_grid_search(
             "all_results": all_results
         }
 
-        filename = f"results/{experiment_name}_summary.json"
+        filename = JSON_DIR / f"{experiment_name}_summary.json"
         with open(filename, "w") as f:
             json.dump(results_summary, f, indent=2)
 
@@ -793,6 +822,8 @@ def DGCRN_train_with_mlflow(
             patience=params.get('patience', 10),
             device=device
         )
+        best_model_path = _configure_best_model_path(model, "DGCRN", experiment_name)
+        mlflow.log_param("best_model_path", str(best_model_path))
 
         print("\nIniciando treinamento do DGCRN...")
         model.fit(train_loader, val_loader)
@@ -954,6 +985,8 @@ def STICformer_train_with_mlflow(
             patience=params.get('patience', 10),
             device=device
         )
+        best_model_path = _configure_best_model_path(model, "STICformer", experiment_name)
+        mlflow.log_param("best_model_path", str(best_model_path))
 
         print("\nIniciando treinamento do STICformer...")
         model.fit(train_loader, val_loader)
@@ -1117,6 +1150,8 @@ def PatchSTG_train_with_mlflow(
             patience=params.get('patience', 10),
             device=device
         )
+        best_model_path = _configure_best_model_path(model, "PatchSTG", experiment_name)
+        mlflow.log_param("best_model_path", str(best_model_path))
 
         print("\nIniciando treinamento do PatchSTG...")
         model.fit(train_loader, val_loader)

@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -223,6 +224,8 @@ class GraphWaveNet(nn.Module):
         patience_counter = 0
         self.train_losses = []
         self.val_losses = []
+        best_model_path = Path(getattr(self, "best_model_path", "best_model.pth"))
+        best_model_path.parent.mkdir(parents=True, exist_ok=True)
         
         for epoch in range(self.epochs):
             epoch_loss = 0.0
@@ -254,7 +257,7 @@ class GraphWaveNet(nn.Module):
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     patience_counter = 0
-                    torch.save(self.state_dict(), 'best_model.pth')
+                    torch.save(self.state_dict(), str(best_model_path))
                 else:
                     patience_counter += 1
                 
@@ -263,7 +266,7 @@ class GraphWaveNet(nn.Module):
                     break
         
         if val_loader:
-            self.load_state_dict(torch.load('best_model.pth'))
+            self.load_state_dict(torch.load(str(best_model_path), map_location=self.device))
     
     def evaluate(self, loader):
         self.eval()
