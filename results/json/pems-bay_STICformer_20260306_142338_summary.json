@@ -1,0 +1,113 @@
+{
+  "timestamp": "2026-03-06T17:10:44.514956",
+  "experiment_name": "pems-bay_STICformer_20260306_142338",
+  "model": "STICformer",
+  "total_configs": 1,
+  "best_by_loss": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 200,
+      "patience": 5
+    },
+    "test_loss": 0.18763320838716124,
+    "mae": 0.2036142647266388,
+    "rmse": 0.43329110741615295,
+    "mape": 123.62567138671875
+  },
+  "best_by_mae": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 200,
+      "patience": 5
+    },
+    "test_loss": 0.18763320838716124,
+    "mae": 0.2036142647266388,
+    "rmse": 0.43329110741615295,
+    "mape": 123.62567138671875
+  },
+  "best_by_rmse": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 200,
+      "patience": 5
+    },
+    "test_loss": 0.18763320838716124,
+    "mae": 0.2036142647266388,
+    "rmse": 0.43329110741615295,
+    "mape": 123.62567138671875
+  },
+  "best_by_mape": {
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 200,
+      "patience": 5
+    },
+    "test_loss": 0.18763320838716124,
+    "mae": 0.2036142647266388,
+    "rmse": 0.43329110741615295,
+    "mape": 123.62567138671875
+  },
+  "all_results": [
+    {
+      "params": {
+        "input_dim": 1,
+        "hidden_dim": 64,
+        "output_dim": 1,
+        "seq_len": 12,
+        "horizon": 12,
+        "num_layers": 2,
+        "num_heads": 4,
+        "ff_multiplier": 2,
+        "dropout": 0.1,
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 200,
+        "patience": 5
+      },
+      "test_loss": 0.18763320838716124,
+      "mae": 0.2036142647266388,
+      "rmse": 0.43329110741615295,
+      "mape": 123.62567138671875
+    }
+  ]
+}
