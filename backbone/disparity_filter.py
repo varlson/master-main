@@ -14,7 +14,6 @@ from scipy.stats import percentileofscore
 from typing import Optional, Tuple, Dict
 import warnings
 import h5py
-from shared import filterdH5Data
 
 
 
@@ -294,7 +293,27 @@ class DisparityFilter:
         return filtered_graph
     
     def rebuildH5Data(self, filepath: str, key: str = "df") -> np.ndarray:
-        return filterdH5Data(self.nodesToKeep, filepath, key)
+        if not self.nodesToKeep:
+            raise ValueError(
+                "nodesToKeep vazio. Execute filter_by_alpha/filter_by_percentile antes."
+            )
+
+        with h5py.File(filepath, "r") as file_obj:
+            if key not in file_obj:
+                available_keys = list(file_obj.keys())
+                raise KeyError(
+                    f"Chave '{key}' nao encontrada no H5. Disponiveis: {available_keys}"
+                )
+            data = np.array(file_obj[key]["block0_values"])
+
+        if len(self.nodesToKeep) != data.shape[1]:
+            raise ValueError(
+                "nodesToKeep e quantidade de colunas do H5 nao batem: "
+                f"{len(self.nodesToKeep)} != {data.shape[1]}"
+            )
+
+        keep_mask = np.array(self.nodesToKeep, dtype=bool)
+        return data[:, keep_mask]
     
     def get_edges_dataframe(self) -> pd.DataFrame:
         """
