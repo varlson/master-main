@@ -157,54 +157,60 @@ def save_filtered_graph(original_graph: nx.Graph,
                         
                         weight: Optional[str] = 'weight') -> None:
   
-    # Criar mapeamento de nós do grafo original
-    node_mapping = {node: idx for idx, node in enumerate(original_graph.nodes())}
-    n = len(node_mapping)
+    # # Criar mapeamento de nós do grafo original
+    # node_mapping = {node: idx for idx, node in enumerate(original_graph.nodes())}
+    # n = len(node_mapping)
     
-    # Criar matriz de adjacência do tamanho do grafo original
-    adj = np.zeros((n, n))
+    # # Criar matriz de adjacência do tamanho do grafo original
+    # adj = np.zeros((n, n))
     
-    # Preencher apenas as arestas que existem no grafo filtrado
-    for u, v in filtered_graph.edges():
-        if u in node_mapping and v in node_mapping:
-            i, j = node_mapping[u], node_mapping[v]
-            edge_data = filtered_graph[u][v]
-            w = edge_data.get(weight, 1.0) if weight else 1.0
-            adj[i, j] = w
+    # # Preencher apenas as arestas que existem no grafo filtrado
+    # for u, v in filtered_graph.edges():
+    #     if u in node_mapping and v in node_mapping:
+    #         i, j = node_mapping[u], node_mapping[v]
+    #         edge_data = filtered_graph[u][v]
+    #         w = edge_data.get(weight, 1.0) if weight else 1.0
+    #         adj[i, j] = w
             
-            # Se não-direcionado, preencher simetricamente
-            if not filtered_graph.is_directed():
-                adj[j, i] = w
+    #         # Se não-direcionado, preencher simetricamente
+    #         if not filtered_graph.is_directed():
+    #             adj[j, i] = w
     
-    # Salvar com metadados
+    # # Salvar com metadados
     path = Path(output_path)
-    ext = path.suffix.lower()
     
-    if ext == ".npz":
-        np.savez_compressed(
-            path,
-            adj=adj,
-            num_nodes_original=len(original_graph.nodes()),
-            num_nodes_filtered=len(filtered_graph.nodes()),
-            num_edges_original=len(original_graph.edges()),
-            num_edges_filtered=len(filtered_graph.edges()),
-            node_mapping=np.array(list(node_mapping.keys()), dtype=object)
-        )
-    elif ext == ".npy":
-        np.save(path, adj)
-    elif ext == ".pkl":
-        with open(path, "wb") as f:
-            pickle.dump(adj, f, protocol=pickle.HIGHEST_PROTOCOL)
-    else:
-        raise ValueError(f"Formato não suportado: {ext}")
+    adj_mx = nx.to_numpy_array(filtered_graph, weight=weight)
+    print(f"matriz de adjacência filtrada com shape {adj_mx.shape}")
+    np.save(path, adj_mx)
+    
+    # ext = path.suffix.lower()
+    
+    # if ext == ".npz":
+    #     np.savez_compressed(
+    #         path,
+    #         adj=adj,
+    #         num_nodes_original=len(original_graph.nodes()),
+    #         num_nodes_filtered=len(filtered_graph.nodes()),
+    #         num_edges_original=len(original_graph.edges()),
+    #         num_edges_filtered=len(filtered_graph.edges()),
+    #         node_mapping=np.array(list(node_mapping.keys()), dtype=object)
+    #     )
+    # elif ext == ".npy":
+    #     print(f"Salvando matriz de adjacência filtrada em {path} com shape {adj.shape}")
+    #     np.save(path, adj)
+    # elif ext == ".pkl":
+    #     with open(path, "wb") as f:
+    #         pickle.dump(adj, f, protocol=pickle.HIGHEST_PROTOCOL)
+    # else:
+    #     raise ValueError(f"Formato não suportado: {ext}")
     
     nx.write_graphml(filtered_graph, f"../data/GraphML/{filtered_graph_out_name}.GraphML")
     
-    print(f"  Nós originais: {len(original_graph.nodes())}")
-    print(f"  Arestas originais: {len(original_graph.edges())}")
-    print(f"  Nós filtrados: {len(filtered_graph.nodes())}")
-    print(f"  Arestas filtradas: {len(filtered_graph.edges())}")
-    print(f"  Redução: {(1 - len(filtered_graph.edges())/len(original_graph.edges()))*100:.1f}%")
+    # print(f"  Nós originais: {len(original_graph.nodes())}")
+    # print(f"  Arestas originais: {len(original_graph.edges())}")
+    # print(f"  Nós filtrados: {len(filtered_graph.nodes())}")
+    # print(f"  Arestas filtradas: {len(filtered_graph.edges())}")
+    # print(f"  Redução: {(1 - len(filtered_graph.edges())/len(original_graph.edges()))*100:.1f}%")
 
 def generate_graph_from_adjmx_nx(path: str, name, outputPath = "data/GraphML", ) -> nx.Graph:
     path = Path(path)

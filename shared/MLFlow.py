@@ -18,15 +18,26 @@ from shared.loaders import denormalize_predictions
 from shared.visualization import generate_model_diagnostics
 
 
-RESULTS_DIR = Path("results")
-CSV_DIR = RESULTS_DIR / "csv"
-JSON_DIR = RESULTS_DIR / "json"
-MD_DIR = RESULTS_DIR / "md"
-PLOTS_DIR = RESULTS_DIR / "plots"
-BEST_MODELS_DIR = RESULTS_DIR / "best-models"
+RESULTS_DIR: Path = Path("results")
+CSV_DIR: Path = RESULTS_DIR / "csv"
+JSON_DIR: Path = RESULTS_DIR / "json"
+MD_DIR: Path = RESULTS_DIR / "md"
+PLOTS_DIR: Path = RESULTS_DIR / "plots"
+BEST_MODELS_DIR: Path = RESULTS_DIR / "best-models"
 
-for _dir in (RESULTS_DIR, CSV_DIR, JSON_DIR, MD_DIR, PLOTS_DIR, BEST_MODELS_DIR):
-    _dir.mkdir(parents=True, exist_ok=True)
+
+def set_results_root(results_root: str | Path) -> None:
+    global RESULTS_DIR, CSV_DIR, JSON_DIR, MD_DIR, PLOTS_DIR, BEST_MODELS_DIR
+
+    RESULTS_DIR = Path(results_root)
+    CSV_DIR = RESULTS_DIR / "csv"
+    JSON_DIR = RESULTS_DIR / "json"
+    MD_DIR = RESULTS_DIR / "md"
+    PLOTS_DIR = RESULTS_DIR / "plots"
+    BEST_MODELS_DIR = RESULTS_DIR / "best-models"
+
+    for _dir in (RESULTS_DIR, CSV_DIR, JSON_DIR, MD_DIR, PLOTS_DIR, BEST_MODELS_DIR):
+        _dir.mkdir(parents=True, exist_ok=True)
 
 
 def _build_best_configs_dataframe(all_results):
@@ -74,6 +85,8 @@ def _save_grid_search_summary(experiment_name, model_name, all_results, best_los
 
 def _extract_dataset_name(experiment_name: str) -> str:
     parts = experiment_name.split("_")
+    if len(parts) >= 4 and parts[0] in {"original", "backbone"}:
+        return parts[1]
     if len(parts) >= 3:
         return parts[0]
     return "unknown"

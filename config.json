@@ -1,0 +1,31 @@
+{
+  "experiment": "backbone",
+  "dataset_names": ["pems-bay"],
+  "backbone_dataset_names": [
+    "metr-la-by-disp_fil-with-alpah_filter0_1",
+    "metr-la-by-disp_fil-with-percen_filter0_3",
+    "metr-la-by-nois_corr-with-alpah_filter0_1",
+    "metr-la-by-nois_corr-with-percen_filter0_3",
+    "pems-bay-by-disp_fil-with-alpah_filter0_1",
+    "pems-bay-by-disp_fil-with-percen_filter0_3",
+    "pems-bay-by-nois_corr-with-alpah_filter0_1",
+    "pems-bay-by-nois_corr-with-percen_filter0_3"
+  ],
+  "original_npy_dir": "data/npy",
+  "backbone_npy_dir": "data/npy",
+  "results_dir": "results",
+  "device": "cpu",
+  "seq_len": 12,
+  "horizon": 12,
+  "batch_size": 64,
+  "epochs": 2,
+  "run_dcrnn": true,
+  "run_graph_wavenet": true,
+  "run_mtgnn": true,
+  "run_dgcrn": true,
+  "run_sticformer": true,
+  "run_patchstg": true,
+  "generate_plots": true,
+  "plots_num_nodes": 4,
+  "plots_max_time_points": 350
+}
