@@ -5,6 +5,8 @@ Projeto para experimentação e comparação de modelos de previsão de tráfego
 O pipeline atual suporta:
 - preparação de dados a partir de arquivos `.npy`
 - treino e grid search com MLflow
+- seleção de hiperparâmetros por validação
+- agregação por múltiplas `seeds`
 - execução em múltiplos datasets na mesma rodada
 - consolidação de resultados em CSV/JSON/Markdown
 
@@ -16,7 +18,8 @@ Comparar modelos espaço-temporais (GNN / RNN / conv-temporal) em datasets de tr
 2. criação de `DataLoaders`
 3. treino/validação/teste
 4. grid search
-5. consolidação e relatório dos resultados
+5. seleção por validação
+6. consolidação e relatório dos resultados
 
 ## Modelos Implementados
 
@@ -63,8 +66,10 @@ Exemplos:
 │   └── PatchSTG.py               # Modelo PatchSTG
 ├── shared/
 │   ├── loaders.py                # Preparo de dados, normalização e DataLoaders
-│   ├── MLFlow.py                 # Treino + grid search + integração com MLflow
-│   ├── resultSumarization.py     # Consolidação CSV/JSON/relatório
+│   ├── MLFlow.py                 # Search por seed + seleção por validação + teste final
+│   ├── metrics.py                # Métricas em escala original e agregação estatística
+│   ├── reproducibility.py        # Controle de seeds e determinismo
+│   ├── resultSumarization.py     # Consolidação científica CSV/JSON/relatório
 │   ├── dataprocessor.py          # Conversão de arquivos (h5/pkl -> npy)
 │   └── utils.py                  # Utilitários diversos (grafo, download, etc.)
 ├── data/
@@ -73,6 +78,7 @@ Exemplos:
 │   └── npy/                      # Entrada principal do pipeline
 ├── backbone/
 │   ├── disparity_filter.py       # Extração de backbone (Disparity Filter)
+│   ├── high_salience_skeleton.py # Extração de backbone (High Salience Skeleton)
 │   └── noise_corrected.py        # Extração de backbone (Noise Corrected)
 └── results/                      # Saídas consolidadas e sumários de grid search
 ```
@@ -101,7 +107,9 @@ Observação:
 
 ## Como Usar
 
-O pipeline é executado por `main.py` e usa variáveis de ambiente para configuração.
+O pipeline é executado por `main.py` e pode ser configurado por:
+- variáveis de ambiente
+- arquivo JSON, usando `CONFIG_SOURCE=json`
 
 ## Execução básica (dataset único)
 
@@ -113,6 +121,31 @@ Por padrão:
 - dataset: `pems-bay`
 - modelos: `DCRNN`, `GraphWaveNet`, `MTGNN`, `DGCRN`, `STICformer`, `PatchSTG`
 - `seq_len=12`, `horizon=12`, `batch_size=8`
+- `seeds=[42]`
+- seleção por `val_mae`
+
+## Executar usando `config.json`
+
+O `config.json` só é lido quando `CONFIG_SOURCE=json`.
+
+```bash
+CONFIG_SOURCE=json CONFIG_FILE=config.json python3 main.py
+```
+
+## Smoke test rápido
+
+O repositório agora inclui um `config.smoke.json` para teste curto do pipeline científico:
+
+```bash
+CONFIG_SOURCE=json CONFIG_FILE=config.smoke.json python3 main.py
+```
+
+Esse smoke test roda:
+- `pems-bay`
+- `GraphWaveNet`
+- `epochs=1`
+- `seeds=[42]`
+- sem geração de plots
 
 ## Executar dataset específico
 
@@ -162,12 +195,17 @@ SEQ_LEN=12 HORIZON=12 BATCH_SIZE=32 python3 main.py
 
 ## Variáveis de Ambiente (Pipeline)
 
+- `CONFIG_SOURCE`: `env` ou `json`
+- `CONFIG_FILE`: caminho do JSON quando `CONFIG_SOURCE=json`
 - `DATASET_NAME`: dataset único (fallback)
 - `DATASET_NAMES`: lista separada por vírgula (`"pems-bay,metr-la"`)
 - `DEVICE`: `cpu` ou `cuda`
 - `SEQ_LEN`: tamanho da janela de entrada
 - `HORIZON`: horizonte de previsão
 - `BATCH_SIZE`: tamanho do batch
+- `EPOCHS`: número máximo de épocas
+- `SEEDS`: lista separada por vírgula (`"42,43,44"`)
+- `SELECTION_METRIC`: métrica de seleção da configuração (`val_mae`, `val_rmse`, ...)
 - `RUN_DCRNN`: `1`/`0`
 - `RUN_GRAPH_WAVENET`: `1`/`0`
 - `RUN_MTGNN`: `1`/`0`
@@ -185,19 +223,45 @@ Para cada dataset:
 1. valida presença dos arquivos `.npy`
 2. carrega série temporal e matriz de adjacência
 3. prepara `train/val/test` com normalização e janelas temporais
-4. executa grid search dos modelos habilitados
-5. consolida resultados do dataset em `results/`
+4. executa `search` dos modelos habilitados para todas as combinações e `seeds`
+5. avalia cada trial na validação em escala original
+6. escolhe a melhor configuração pela métrica de validação (`SELECTION_METRIC`)
+7. reexecuta a configuração escolhida e avalia no teste final
+8. consolida resultados do dataset em `results/`
 
 Se houver mais de um dataset na execução:
 
-6. gera consolidação global `all-datasets_<RUN_ID>_*`
+9. gera consolidação global `all-datasets_<RUN_ID>_*`
+
+## Protocolo Científico Atual
+
+O pipeline foi adaptado para um protocolo mais adequado para comparação científica:
+
+- a seleção de hiperparâmetros é feita por validação, não por teste
+- as métricas principais são calculadas na escala original dos dados
+- o teste final é agregado por múltiplas `seeds`
+- os relatórios principais usam `mean`, `std` e `IC95%` quando houver mais de uma seed
+- a consolidação global também calcula `rank_in_dataset` e `delta_vs_best_pct`
+
+Métricas finais principais:
+- `MAE`
+- `RMSE`
+- `sMAPE`
+- `WAPE`
+
+Observação:
+- `MAPE` ainda é salvo, mas para apresentação científica recomenda-se priorizar `MAE`, `RMSE`, `sMAPE` e `WAPE`
 
 ## Saídas Geradas
 
-### Sumários de Grid Search (por modelo/experimento)
+### Sumários do Search e Teste Final (por modelo/experimento)
 
 Gerados por `shared/MLFlow.py` em:
 - `results/json/<experiment_name>_summary.json`
+- `results/csv/<experiment_name>_trial_results.csv`
+- `results/json/<experiment_name>_trial_results.json`
+- `results/csv/<experiment_name>_final_test_results.csv`
+- `results/json/<experiment_name>_final_test_results.json`
 
 ### Consolidação (por dataset e global)
 
@@ -205,6 +269,12 @@ Gerados por `shared/resultSumarization.py`:
 
 - `results/csv/<scope>_<RUN_ID>_consolidated_experiments.csv`
 - `results/json/<scope>_<RUN_ID>_consolidated_experiments.json`
+- `results/csv/<scope>_<RUN_ID>_trial_results.csv`
+- `results/json/<scope>_<RUN_ID>_trial_results.json`
+- `results/csv/<scope>_<RUN_ID>_final_test_results.csv`
+- `results/json/<scope>_<RUN_ID>_final_test_results.json`
+- `results/csv/<scope>_<RUN_ID>_config_summaries.csv`
+- `results/json/<scope>_<RUN_ID>_config_summaries.json`
 - `results/md/<scope>_<RUN_ID>_comparison_report.md`
 - `results/json/<scope>_<RUN_ID>_best_configs.json`
 
@@ -217,16 +287,16 @@ Onde `<scope>` pode ser:
 
 Gerados automaticamente por `shared/visualization.py` quando `GENERATE_PLOTS=1`:
 
-- `results/json/<experiment_name>_overall_metrics.json`
-- `results/csv/<experiment_name>_metrics_by_horizon.csv`
-- `results/csv/<experiment_name>_metrics_by_node.csv`
-- `results/plots/<experiment_name>/real_vs_pred_nodes.png`
-- `results/plots/<experiment_name>/scatter_real_vs_pred.png`
-- `results/plots/<experiment_name>/metrics_by_horizon.png`
-- `results/plots/<experiment_name>/metrics_by_node.png`
-- `results/plots/<experiment_name>/error_over_time.png`
-- `results/plots/<experiment_name>/train_val_curves.png` (quando houver historico de treino)
-- `results/plots/<experiment_name>/error_heatmap_node_time.png`
+- `results/json/<experiment_name>_final_seed<seed>_overall_metrics.json`
+- `results/csv/<experiment_name>_final_seed<seed>_metrics_by_horizon.csv`
+- `results/csv/<experiment_name>_final_seed<seed>_metrics_by_node.csv`
+- `results/plots/<experiment_name>_final_seed<seed>/real_vs_pred_nodes.png`
+- `results/plots/<experiment_name>_final_seed<seed>/scatter_real_vs_pred.png`
+- `results/plots/<experiment_name>_final_seed<seed>/metrics_by_horizon.png`
+- `results/plots/<experiment_name>_final_seed<seed>/metrics_by_node.png`
+- `results/plots/<experiment_name>_final_seed<seed>/error_over_time.png`
+- `results/plots/<experiment_name>_final_seed<seed>/train_val_curves.png` (quando houver historico de treino)
+- `results/plots/<experiment_name>_final_seed<seed>/error_heatmap_node_time.png`
 
 ### Checkpoints de Melhores Modelos
 
@@ -238,7 +308,8 @@ Durante o treino com validação, o melhor checkpoint de cada run é salvo em:
 
 O treino/grid search usa MLflow para:
 - registrar hiperparâmetros
-- registrar métricas (`train`, `val`, `test`)
+- registrar métricas de `search` e `final`
+- registrar métricas de validação e teste em escala original
 - salvar artefatos de modelo (`mlflow.pytorch.log_model`)
 
 Diretório local padrão (se não configurado):
@@ -270,7 +341,7 @@ O padrão atual para integrar um novo modelo no pipeline é:
    - `fit`
    - `evaluate`
    - `predict`
-3. adicionar `*_train_with_mlflow` e `*_grid_search` em `shared/MLFlow.py`
+3. garantir compatibilidade com o runner genérico em `shared/MLFlow.py`
 4. incluir o modelo no `main.py`:
    - flag `RUN_*`
    - grid de hiperparâmetros
@@ -281,10 +352,13 @@ O padrão atual para integrar um novo modelo no pipeline é:
 - Os grids em `main.py` estão enxutos por padrão (epocas baixas) para facilitar testes rápidos.
 - Os modelos `MTGNN`, `DGCRN`, `STICformer` e `PatchSTG` foram integrados ao pipeline no mesmo padrão de interface dos demais.
 - `requirements.txt` pode exigir ajuste dependendo do ambiente (CPU/GPU, CUDA, versões locais).
+- Ainda faltam testes estatísticos pareados e relatórios agregados por horizonte entre seeds/modelos.
 
 ## Próximos Passos Recomendados
 
 - expandir grids de hiperparâmetros por modelo
-- adicionar métricas por horizonte (ex.: 3/6/12 passos)
+- adicionar consolidação agregada por horizonte entre seeds
+- adicionar comparação explícita `original vs backbone`
+- adicionar testes estatísticos pareados por dataset/horizonte
 - incluir novos modelos (ex.: AGCRN, STAEformer, PDFormer)
-- documentar protocolo de benchmark (split, normalização, seeds)
+- manter documentado o protocolo de benchmark (split, normalização, seeds, seleção por validação)

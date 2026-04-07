@@ -9,7 +9,7 @@ Uso:
     python3 main.py
 
 Tambem aceita parametros opcionais:
-    python3 main.py --datasets metr-la --methods disp_fil --cuts alpha
+    python3 main.py --datasets metr-la --methods disp_fil high_sal --cuts alpha
 """
 
 from __future__ import annotations
@@ -173,7 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--methods",
         nargs="+",
-        choices=["disp_fil", "nois_corr"],
+        choices=["disp_fil", "nois_corr", "high_sal"],
         default=["disp_fil", "nois_corr"],
         help="Metodos de backbone a executar.",
     )
@@ -210,6 +210,7 @@ def main() -> None:
     _prepare_imports()
 
     from disparity_filter import DisparityFilter
+    from high_salience_skeleton import HighSalienceSkeleton
     from noise_corrected import NoiseCorrectedFilter
 
     parser = build_parser()
@@ -267,7 +268,7 @@ def main() -> None:
                         alpha=alpha, min_degree=min_degree
                     )
                 nodes_to_keep = df.nodesToKeep
-            else:
+            elif method == "nois_corr":
                 ncf = NoiseCorrectedFilter(graph, undirected=True, use_p_value=False)
                 if cut.startswith("percen"):
                     filtered_graph = ncf.filter_by_percentile(
@@ -278,6 +279,19 @@ def main() -> None:
                         alpha=alpha, min_degree=min_degree
                     )
                 nodes_to_keep = ncf.nodesToKeep
+            elif method == "high_sal":
+                hss = HighSalienceSkeleton(graph)
+                if cut.startswith("percen"):
+                    filtered_graph = hss.filter_by_percentile(
+                        percentile=percentile, min_degree=min_degree
+                    )
+                else:
+                    filtered_graph = hss.filter_by_alpha(
+                        alpha=alpha, min_degree=min_degree
+                    )
+                nodes_to_keep = hss.nodesToKeep
+            else:
+                raise ValueError(f"Metodo de backbone nao suportado: {method}")
 
             if filtered_graph.number_of_nodes() != graph.number_of_nodes():
                 _update_h5(h5_matrix, nodes_to_keep, output_name)

@@ -21,6 +21,7 @@ from shared.MLFlow import (
     PatchSTG_grid_search,
     set_results_root,
 )
+from shared.reproducibility import parse_seeds
 from shared.resultSumarization import (
     consolidate_experiment_results,
     create_comparison_report,
@@ -45,6 +46,8 @@ class RuntimeConfig:
     horizon: int
     batch_size: int
     epochs: int
+    seeds: list[int]
+    selection_metric: str
     run_dcrnn: bool
     run_graph_wavenet: bool
     run_mtgnn: bool
@@ -283,6 +286,22 @@ def load_runtime_config() -> RuntimeConfig:
             "BATCH_SIZE",
         ),
         epochs=epochs,
+        seeds=parse_seeds(
+            _resolve_raw_value(
+                key="SEEDS",
+                default="42",
+                config_source=config_source,
+                json_config=json_config,
+            )
+        ),
+        selection_metric=str(
+            _resolve_raw_value(
+                key="SELECTION_METRIC",
+                default="val_mae",
+                config_source=config_source,
+                json_config=json_config,
+            )
+        ).strip().lower(),
         run_dcrnn=_parse_bool(
             _resolve_raw_value(
                 key="RUN_DCRNN",
@@ -537,7 +556,7 @@ def run_model_experiment(
     print(f"Modelo: {model_name} | Device: {config.device}")
     print(f"{'#' * 90}")
 
-    all_results, best_result, df_best = grid_search_fn(
+    grid_result = grid_search_fn(
         param_grid=param_grid,
         train_loader=train_loader,
         val_loader=val_loader,
@@ -545,14 +564,18 @@ def run_model_experiment(
         adj_mx=adj_mx,
         num_nodes=num_nodes,
         experiment_name=experiment_name,
+        dataset_name=dataset_name,
         device=config.device,
         normalization_stats=normalization_stats,
+        seeds=config.seeds,
+        selection_metric=config.selection_metric,
         generate_plots=config.generate_plots,
         num_nodes_to_plot=config.plots_num_nodes,
         max_time_points=config.plots_max_time_points,
     )
 
-    if df_best is None or df_best.empty:
+    final_summary = grid_result.get("final_summary") if grid_result else None
+    if not final_summary:
         print(f"Sem resultados validos para {model_name}.")
         return None
 
@@ -560,18 +583,25 @@ def run_model_experiment(
         "experiment_name": experiment_name,
         "model": model_name,
         "dataset": dataset_name,
-        "df_best": df_best,
+        "trial_results": grid_result.get("trial_results", []),
+        "config_summaries": grid_result.get("config_summaries", []),
+        "selected_config": grid_result.get("selected_config"),
+        "final_test_results": grid_result.get("final_test_results", []),
+        "final_summary": final_summary,
         "metadata": {
             "run_label": config.run_label,
             "experiment_type": experiment_type,
             "device": config.device,
+            "seeds": config.seeds,
+            "selection_metric": config.selection_metric,
             "num_nodes": num_nodes,
             "seq_len": config.seq_len,
             "horizon": config.horizon,
             "batch_size": config.batch_size,
             "normalization_stats": normalization_stats,
-            "total_configs": len(all_results) if all_results else 0,
-            "best_result": best_result if best_result else {},
+            "total_trials": len(grid_result.get("trial_results", [])),
+            "num_configs_tested": len(grid_result.get("config_summaries", [])),
+            "selected_config": grid_result.get("selected_config") or {},
         },
     }
 
@@ -598,7 +628,7 @@ def consolidate_outputs(
         experiments_data=experiments_data,
         output_csv=f"{prefix}_consolidated_experiments.csv",
         output_json=f"{prefix}_consolidated_experiments.json",
-        primary_metric="MAE",
+        primary_metric="test_mae_mean",
         save_path=results_root,
     )
 
@@ -773,6 +803,8 @@ def main() -> None:
     print(f"- EXPERIMENT: {config.experiment}")
     print(f"- RUN_LABEL: {config.run_label}")
     print(f"- DEVICE: {config.device}")
+    print(f"- SEEDS: {config.seeds}")
+    print(f"- SELECTION_METRIC: {config.selection_metric}")
 
     if config.run_original:
         run_experiment_group(

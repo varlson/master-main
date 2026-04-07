@@ -1,12 +1,15 @@
 """
-Utilitários para consolidação de resultados de experimentos
+Utilitarios para consolidacao cientifica de resultados de experimentos.
 """
 
-import pandas as pd
+from __future__ import annotations
+
 from datetime import datetime
 import json
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
+import pandas as pd
 
 
 def _results_subdir(save_path: Path, folder: str) -> Path:
@@ -15,212 +18,318 @@ def _results_subdir(save_path: Path, folder: str) -> Path:
     return path
 
 
+def _derive_prefix_from_output(output_csv: str) -> str:
+    suffix = "_consolidated_experiments.csv"
+    if output_csv.endswith(suffix):
+        return output_csv[: -len(suffix)]
+    return Path(output_csv).stem
+
+
+def _safe_json(value) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _flatten_records(experiments_data: List[Dict], key: str) -> pd.DataFrame:
+    rows: list[dict] = []
+    for exp in experiments_data:
+        for record in exp.get(key, []) or []:
+            row = {
+                "experiment_name": exp["experiment_name"],
+                "model": exp["model"],
+                "dataset": exp["dataset"],
+            }
+            row.update(record)
+            if "params" in row:
+                row["params"] = _safe_json(row["params"])
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _flatten_config_summaries(experiments_data: List[Dict]) -> pd.DataFrame:
+    rows: list[dict] = []
+    for exp in experiments_data:
+        for summary in exp.get("config_summaries", []) or []:
+            row = {
+                "experiment_name": exp["experiment_name"],
+                "model": exp["model"],
+                "dataset": exp["dataset"],
+                "params": _safe_json(summary.get("params", {})),
+            }
+            for key, value in summary.items():
+                if key == "params":
+                    continue
+                row[key] = value
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _export_long_tables(
+    *,
+    experiments_data: List[Dict],
+    save_path: Path,
+    prefix: str,
+) -> None:
+    csv_dir = _results_subdir(save_path, "csv")
+    json_dir = _results_subdir(save_path, "json")
+
+    tables = {
+        "trial_results": _flatten_records(experiments_data, "trial_results"),
+        "final_test_results": _flatten_records(experiments_data, "final_test_results"),
+        "config_summaries": _flatten_config_summaries(experiments_data),
+    }
+
+    for name, frame in tables.items():
+        csv_file = csv_dir / f"{prefix}_{name}.csv"
+        json_file = json_dir / f"{prefix}_{name}.json"
+        frame.to_csv(csv_file, index=False)
+        with json_file.open("w", encoding="utf-8") as file:
+            json.dump(frame.to_dict("records"), file, indent=2, ensure_ascii=False)
+        print(f"✔ Tabela salva: {csv_file}")
+        print(f"✔ JSON salvo: {json_file}")
+
+
 def consolidate_experiment_results(
     experiments_data: List[Dict],
     output_csv: str = "consolidated_experiments.csv",
     output_json: str = "consolidated_experiments.json",
-    primary_metric: str = "MAE",
-    save_path: Optional[Path] = None
+    primary_metric: str = "test_mae_mean",
+    save_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     """
-    Consolida resultados de múltiplos experimentos
-    
-    Args:
-        experiments_data: Lista de dicionários com dados dos experimentos
-        output_csv: Nome do arquivo CSV de saída
-        output_json: Nome do arquivo JSON de saída
-        primary_metric: Métrica principal para consolidação
-        save_path: Diretório onde salvar os resultados (None = diretório atual)
-        
-    Returns:
-        DataFrame consolidado com todos os resultados
+    Consolida resultados finais de multiplos experimentos em formato cientifico.
     """
     if save_path is None:
         save_path = Path(".")
     else:
         save_path = Path(save_path)
         save_path.mkdir(parents=True, exist_ok=True)
+
     csv_dir = _results_subdir(save_path, "csv")
     json_dir = _results_subdir(save_path, "json")
-    
+    prefix = _derive_prefix_from_output(output_csv)
+
     rows = []
-    
     for exp in experiments_data:
-        df_best = exp["df_best"]
-        
-        if df_best is None or df_best.empty:
-            print(f"⚠️  Experimento {exp['experiment_name']} não tem resultados válidos, pulando...")
+        final_summary = exp.get("final_summary")
+        if not final_summary:
+            print(f"⚠️  Experimento {exp['experiment_name']} sem final_summary, pulando...")
             continue
-        
-        # Seleciona apenas a métrica principal
-        primary_rows = df_best[df_best["Métrica"] == primary_metric]
-        
-        if primary_rows.empty:
-            print(f"⚠️  Métrica '{primary_metric}' não encontrada em {exp['experiment_name']}, pulando...")
-            continue
-            
-        row = primary_rows.iloc[0]
-        
-        rows.append({
+
+        selected_config = exp.get("selected_config") or {}
+        row = {
             "experiment_name": exp["experiment_name"],
             "model": exp["model"],
             "dataset": exp["dataset"],
-            "test_loss": row["Test Loss"],
-            "mae": row["MAE"],
-            "rmse": row["RMSE"],
-            "mape": row["MAPE (%)"],
-            "params": row["Params"],
-            **{f"metadata_{k}": v for k, v in exp.get("metadata", {}).items()},
-            "timestamp": datetime.now().isoformat()
-        })
-    
+            "selection_metric": final_summary.get("selection_metric"),
+            "selected_params": _safe_json(final_summary.get("selected_params", {})),
+            "selected_num_completed_seeds": final_summary.get("selected_num_completed_seeds"),
+            "final_num_completed_seeds": final_summary.get("final_num_completed_seeds"),
+            "timestamp": datetime.now().isoformat(),
+            **{
+                key: value
+                for key, value in final_summary.items()
+                if key.startswith("test_") and key != "test_loss_normalized"
+            },
+            **{
+                key: value
+                for key, value in final_summary.items()
+                if key.startswith("test_loss_normalized_")
+            },
+            **{
+                key: value
+                for key, value in selected_config.items()
+                if key.startswith("val_") or key == "num_completed_seeds"
+            },
+        }
+        rows.append(row)
+
     if not rows:
-        print("❌ Nenhum resultado válido para consolidar!")
+        print("❌ Nenhum resultado final válido para consolidar!")
         return pd.DataFrame()
-    
+
     df = pd.DataFrame(rows)
-    
-    # Salvar CSV
+    if primary_metric in df.columns:
+        df["rank_in_dataset"] = (
+            df.groupby("dataset")[primary_metric]
+            .rank(method="dense", ascending=True)
+            .astype(int)
+        )
+        best_per_dataset = df.groupby("dataset")[primary_metric].transform("min")
+        df["delta_vs_best_pct"] = ((df[primary_metric] / best_per_dataset) - 1.0) * 100.0
+        df = df.sort_values(["dataset", "rank_in_dataset", primary_metric, "model"]).reset_index(drop=True)
+
     csv_path = csv_dir / output_csv
     df.to_csv(csv_path, index=False)
-    print(f"✔ CSV salvo: {csv_path}")
-    
-    # JSON completo contendo todas as métricas
+    print(f"✔ CSV consolidado salvo: {csv_path}")
+
     detailed = {
         "timestamp": datetime.now().isoformat(),
-        "total_experiments": len(experiments_data),
-        "successful_experiments": len(rows),
         "primary_metric": primary_metric,
+        "total_experiments": len(experiments_data),
+        "successful_experiments": len(df),
+        "summary_rows": df.to_dict("records"),
         "experiments": [
             {
                 "experiment_name": exp["experiment_name"],
                 "model": exp["model"],
                 "dataset": exp["dataset"],
                 "metadata": exp.get("metadata", {}),
-                "best_results": exp["df_best"].to_dict("records") if exp["df_best"] is not None else []
+                "selected_config": exp.get("selected_config"),
+                "final_summary": exp.get("final_summary"),
             }
             for exp in experiments_data
-        ]
+        ],
     }
-    
+
     json_path = json_dir / output_json
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(detailed, f, indent=2, ensure_ascii=False)
-    
-    print(f"✔ JSON salvo: {json_path}")
-    
+    with json_path.open("w", encoding="utf-8") as file:
+        json.dump(detailed, file, indent=2, ensure_ascii=False)
+    print(f"✔ JSON consolidado salvo: {json_path}")
+
+    _export_long_tables(
+        experiments_data=experiments_data,
+        save_path=save_path,
+        prefix=prefix,
+    )
+
     return df
 
 
 def create_comparison_report(
     consolidated_df: pd.DataFrame,
     output_file: str = "comparison_report.md",
-    save_path: Optional[Path] = None
+    save_path: Optional[Path] = None,
 ) -> None:
     """
-    Cria relatório markdown comparando todos os experimentos
-    
-    Args:
-        consolidated_df: DataFrame consolidado
-        output_file: Nome do arquivo de saída
-        save_path: Diretório onde salvar
+    Cria relatório markdown com foco em comparacao cientifica.
     """
     if save_path is None:
         save_path = Path(".")
     else:
         save_path = Path(save_path)
+
     md_dir = _results_subdir(save_path, "md")
-    
     report_path = md_dir / output_file
-    
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write("# Relatório de Comparação de Experimentos GNN\n\n")
-        f.write(f"**Gerado em:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-        f.write(f"**Total de experimentos:** {len(consolidated_df)}\n\n")
-        
-        # Sumário por modelo
-        f.write("## Resumo por Modelo\n\n")
-        for model in consolidated_df['model'].unique():
-            model_df = consolidated_df[consolidated_df['model'] == model]
-            f.write(f"### {model}\n\n")
-            f.write(f"- Experimentos: {len(model_df)}\n")
-            f.write(f"- MAE médio: {model_df['mae'].mean():.4f} ± {model_df['mae'].std():.4f}\n")
-            f.write(f"- RMSE médio: {model_df['rmse'].mean():.4f} ± {model_df['rmse'].std():.4f}\n")
-            f.write(f"- MAPE médio: {model_df['mape'].mean():.2f}% ± {model_df['mape'].std():.2f}%\n\n")
-        
-        # Melhores resultados por dataset
-        f.write("## Melhores Resultados por Dataset\n\n")
-        for dataset in consolidated_df['dataset'].unique():
-            dataset_df = consolidated_df[consolidated_df['dataset'] == dataset]
-            best_exp = dataset_df.loc[dataset_df['mae'].idxmin()]
-            
-            f.write(f"### {dataset}\n\n")
-            f.write(f"- **Melhor modelo:** {best_exp['model']}\n")
-            f.write(f"- **Experimento:** {best_exp['experiment_name']}\n")
-            f.write(f"- **MAE:** {best_exp['mae']:.4f}\n")
-            f.write(f"- **RMSE:** {best_exp['rmse']:.4f}\n")
-            f.write(f"- **MAPE:** {best_exp['mape']:.2f}%\n")
-            f.write(f"- **Parâmetros:** `{best_exp['params']}`\n\n")
-        
-        # Tabela completa
-        f.write("## Tabela Completa de Resultados\n\n")
-        f.write("| Experimento | Modelo | Dataset | MAE | RMSE | MAPE (%) |\n")
-        f.write("|-------------|--------|---------|-----|------|----------|\n")
-        
+
+    model_summary = (
+        consolidated_df.groupby("model", as_index=False)
+        .agg(
+            datasets=("dataset", "nunique"),
+            avg_rank=("rank_in_dataset", "mean"),
+            mean_mae=("test_mae_mean", "mean"),
+            mean_rmse=("test_rmse_mean", "mean"),
+            mean_wape=("test_wape_mean", "mean"),
+        )
+        .sort_values(["avg_rank", "mean_mae", "mean_rmse"])
+    )
+
+    with report_path.open("w", encoding="utf-8") as file:
+        file.write("# Relatório de Comparação Científica de Experimentos\n\n")
+        file.write(f"**Gerado em:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        file.write(f"**Total de experimentos consolidados:** {len(consolidated_df)}\n\n")
+        file.write(
+            "Os números abaixo representam desempenho final em teste para a configuração "
+            "selecionada por validação, agregada por múltiplas seeds quando disponíveis.\n\n"
+        )
+
+        file.write("## Ranking por Dataset\n\n")
+        for dataset in consolidated_df["dataset"].unique():
+            dataset_df = consolidated_df[consolidated_df["dataset"] == dataset]
+            file.write(f"### {dataset}\n\n")
+            file.write("| Rank | Modelo | Test MAE | Test RMSE | Test WAPE (%) | Delta vs melhor (%) |\n")
+            file.write("|------|--------|----------|-----------|---------------|----------------------|\n")
+            for _, row in dataset_df.sort_values(["rank_in_dataset", "test_mae_mean"]).iterrows():
+                file.write(
+                    f"| {int(row['rank_in_dataset'])} | {row['model']} | "
+                    f"{row['test_mae_mean']:.4f} ± {row.get('test_mae_std', 0.0):.4f} | "
+                    f"{row['test_rmse_mean']:.4f} ± {row.get('test_rmse_std', 0.0):.4f} | "
+                    f"{row.get('test_wape_mean', 0.0):.2f} ± {row.get('test_wape_std', 0.0):.2f} | "
+                    f"{row.get('delta_vs_best_pct', 0.0):.2f} |\n"
+                )
+            file.write("\n")
+
+        file.write("## Resumo por Modelo\n\n")
+        file.write("| Modelo | Datasets | Rank médio | MAE médio | RMSE médio | WAPE médio (%) |\n")
+        file.write("|--------|----------|------------|-----------|------------|----------------|\n")
+        for _, row in model_summary.iterrows():
+            file.write(
+                f"| {row['model']} | {int(row['datasets'])} | {row['avg_rank']:.2f} | "
+                f"{row['mean_mae']:.4f} | {row['mean_rmse']:.4f} | {row['mean_wape']:.2f} |\n"
+            )
+        file.write("\n")
+
+        file.write("## Configurações Selecionadas\n\n")
         for _, row in consolidated_df.iterrows():
-            f.write(f"| {row['experiment_name']} | {row['model']} | {row['dataset']} | "
-                   f"{row['mae']:.4f} | {row['rmse']:.4f} | {row['mape']:.2f} |\n")
-    
+            file.write(f"### {row['experiment_name']}\n\n")
+            file.write(f"- Modelo: {row['model']}\n")
+            file.write(f"- Dataset: {row['dataset']}\n")
+            file.write(f"- Métrica de seleção: `{row['selection_metric']}`\n")
+            file.write(f"- Seeds finais: {int(row.get('final_num_completed_seeds', 0))}\n")
+            file.write(f"- Melhor validação (MAE): {row.get('val_mae_mean', float('nan')):.4f}\n")
+            file.write(f"- Teste (MAE): {row.get('test_mae_mean', float('nan')):.4f}\n")
+            file.write(f"- Parâmetros: `{row['selected_params']}`\n\n")
+
+        file.write("## Tabela Completa\n\n")
+        file.write(
+            "| Experimento | Modelo | Dataset | Seeds | Test MAE | Test RMSE | "
+            "Test sMAPE (%) | Test WAPE (%) | Rank |\n"
+        )
+        file.write(
+            "|-------------|--------|---------|-------|----------|-----------|----------------|----------------|------|\n"
+        )
+        for _, row in consolidated_df.iterrows():
+            file.write(
+                f"| {row['experiment_name']} | {row['model']} | {row['dataset']} | "
+                f"{int(row.get('final_num_completed_seeds', 0))} | "
+                f"{row.get('test_mae_mean', float('nan')):.4f} | "
+                f"{row.get('test_rmse_mean', float('nan')):.4f} | "
+                f"{row.get('test_smape_mean', float('nan')):.2f} | "
+                f"{row.get('test_wape_mean', float('nan')):.2f} | "
+                f"{int(row.get('rank_in_dataset', 0))} |\n"
+            )
+
     print(f"✔ Relatório salvo: {report_path}")
 
 
 def export_best_configs_to_json(
     consolidated_df: pd.DataFrame,
     output_file: str = "best_configs.json",
-    save_path: Optional[Path] = None
+    save_path: Optional[Path] = None,
 ) -> None:
     """
-    Exporta as melhores configurações por dataset/modelo para JSON
-    
-    Args:
-        consolidated_df: DataFrame consolidado
-        output_file: Nome do arquivo de saída
-        save_path: Diretório onde salvar
+    Exporta melhores configuracoes selecionadas por dataset/modelo.
     """
     if save_path is None:
         save_path = Path(".")
     else:
         save_path = Path(save_path)
+
     json_dir = _results_subdir(save_path, "json")
-    
-    best_configs = {}
-    
-    for dataset in consolidated_df['dataset'].unique():
-        best_configs[dataset] = {}
-        
-        for model in consolidated_df['model'].unique():
-            subset = consolidated_df[
-                (consolidated_df['dataset'] == dataset) &
-                (consolidated_df['model'] == model)
-            ]
-            
-            if len(subset) > 0:
-                best_exp = subset.loc[subset['mae'].idxmin()]
-                
-                best_configs[dataset][model] = {
-                    "experiment_name": best_exp['experiment_name'],
-                    "mae": float(best_exp['mae']),
-                    "rmse": float(best_exp['rmse']),
-                    "mape": float(best_exp['mape']),
-                    "test_loss": float(best_exp['test_loss']),
-                    "params": best_exp['params'],
-                    "timestamp": best_exp['timestamp']
-                }
-    
+    best_configs: dict[str, dict[str, dict]] = {}
+
+    for _, row in consolidated_df.iterrows():
+        dataset = row["dataset"]
+        model = row["model"]
+        best_configs.setdefault(dataset, {})
+        best_configs[dataset][model] = {
+            "experiment_name": row["experiment_name"],
+            "selection_metric": row["selection_metric"],
+            "selected_params": json.loads(row["selected_params"]),
+            "final_num_completed_seeds": int(row.get("final_num_completed_seeds", 0)),
+            "test_mae_mean": float(row.get("test_mae_mean", float("nan"))),
+            "test_mae_std": float(row.get("test_mae_std", float("nan"))),
+            "test_rmse_mean": float(row.get("test_rmse_mean", float("nan"))),
+            "test_rmse_std": float(row.get("test_rmse_std", float("nan"))),
+            "test_wape_mean": float(row.get("test_wape_mean", float("nan"))),
+            "rank_in_dataset": int(row.get("rank_in_dataset", 0)),
+            "delta_vs_best_pct": float(row.get("delta_vs_best_pct", float("nan"))),
+            "timestamp": row["timestamp"],
+        }
+
     json_path = json_dir / output_file
-    with open(json_path, 'w', encoding='utf-8') as f:
-        json.dump(best_configs, f, indent=2, ensure_ascii=False)
-    
+    with json_path.open("w", encoding="utf-8") as file:
+        json.dump(best_configs, file, indent=2, ensure_ascii=False)
+
     print(f"✔ Melhores configurações salvas: {json_path}")
 
 
@@ -228,35 +337,36 @@ def analyze_hyperparameter_impact(
     experiments_data: List[Dict],
     model_name: str,
     output_file: str = "hyperparameter_analysis.csv",
-    save_path: Optional[Path] = None
+    save_path: Optional[Path] = None,
 ) -> pd.DataFrame:
-    """
-    Analisa o impacto de hiperparâmetros nos resultados
-    
-    Args:
-        experiments_data: Lista de experimentos
-        model_name: Nome do modelo a analisar
-        output_file: Nome do arquivo de saída
-        save_path: Diretório onde salvar
-        
-    Returns:
-        DataFrame com análise de hiperparâmetros
-    """
     if save_path is None:
         save_path = Path(".")
     else:
         save_path = Path(save_path)
-    _results_subdir(save_path, "csv")
-    
-    # Filtrar experimentos do modelo específico
-    model_exps = [exp for exp in experiments_data if exp['model'] == model_name]
-    
-    if not model_exps:
+
+    csv_dir = _results_subdir(save_path, "csv")
+    trial_df = _flatten_records(experiments_data, "trial_results")
+    if trial_df.empty:
+        print("⚠️  Nenhum trial_result disponível para análise.")
+        return pd.DataFrame()
+
+    model_df = trial_df[trial_df["model"] == model_name].copy()
+    if model_df.empty:
         print(f"⚠️  Nenhum experimento encontrado para o modelo '{model_name}'")
         return pd.DataFrame()
-    
-    # TODO: Implementar análise mais sofisticada de hiperparâmetros
-    # Esta é uma implementação básica
-    
-    print(f"ℹ️  Análise de hiperparâmetros para '{model_name}' não implementada completamente")
-    return pd.DataFrame()
+
+    grouped = (
+        model_df.groupby("params", as_index=False)
+        .agg(
+            completed_seeds=("seed", "nunique"),
+            val_mae_mean=("val_mae", "mean"),
+            val_rmse_mean=("val_rmse", "mean"),
+            val_wape_mean=("val_wape", "mean"),
+        )
+        .sort_values(["val_mae_mean", "val_rmse_mean"])
+    )
+
+    output_path = csv_dir / output_file
+    grouped.to_csv(output_path, index=False)
+    print(f"✔ Análise de hiperparâmetros salva: {output_path}")
+    return grouped

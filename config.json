@@ -19,6 +19,8 @@
   "horizon": 12,
   "batch_size": 64,
   "epochs": 2,
+  "seeds": [42],
+  "selection_metric": "val_mae",
   "run_dcrnn": true,
   "run_graph_wavenet": true,
   "run_mtgnn": true,

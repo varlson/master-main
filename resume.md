@@ -1,127 +1,133 @@
-# Relatório Resumido do Projeto (run `20260304_163952`)
+# Resumo Técnico Atualizado (run `20260306_142338`)
 
-## 1) Objetivo e estado atual
-O objetivo do projeto é comparar modelos espaço-temporais para previsão de tráfego em grafo (METR-LA e PEMS-BAY) em um pipeline único de treino/validação/teste e consolidação de resultados.
+Base usada para esta versão:
+- `results/old/md/all-datasets_20260306_142338_comparison_report.md`
+- `results/old/plots/*_20260306_142338/scatter_real_vs_pred.png`
+- `results/old/plots/*_20260306_142338/train_val_curves.png`
 
-Estado atual (com base em `results/md/all-datasets_20260304_163952_comparison_report.md`):
-- 12 experimentos concluídos (6 modelos x 2 datasets).
-- Melhor em `pems-bay`: **STICformer** (`MAE=0.2014`, `RMSE=0.4331`).
-- Melhor em `metr-la` por MAE: **DGCRN** (`MAE=0.2757`), mas com sinais de maior instabilidade de validação.
+## 1) Contexto rápido
+Objetivo do projeto: comparar arquiteturas espaço-temporais para previsão de tráfego em grafo (`metr-la` e `pems-bay`) com o mesmo pipeline.
 
-## 2) Modelos testados (quando surgiram e por que fazem sentido)
-Linha temporal aproximada da literatura de forecasting em grafos:
+Resultado global do run `20260306_142338`:
+- Melhor em `pems-bay`: **STICformer** (`MAE=0.2036`, `RMSE=0.4333`).
+- Melhor em `metr-la` por MAE: **DGCRN** (`MAE=0.3077`), mas não é o mais estável visualmente.
 
-- **DCRNN (2018, geração RNN+difusão)**: forte baseline para dinâmica de tráfego e dependência temporal sequencial.
-- **GraphWaveNet (2019, geração convolucional espaço-temporal)**: bom custo-benefício, normalmente estável e competitivo.
-- **MTGNN (2020, geração com grafo aprendido dinamicamente)**: útil para capturar relações entre nós que não aparecem bem na adjacência fixa.
-- **DGCRN (2021, geração dinâmica com recorrência em grafo)**: tende a capturar mudanças temporais de conectividade; vale testar para cenários não estacionários.
-- **STICformer (mais recente, família Transformer espaço-temporal)**: forte para dependências de médio/longo alcance e bom desempenho em benchmarks recentes.
-- **PatchSTG (mais recente, família Transformer por patches)**: melhora eficiência e costuma generalizar bem em séries longas.
+## 2) Modelos: em que são baseados e como funcionam
 
-Para seu objetivo (comparar arquiteturas em tráfego), o conjunto está bem montado: cobre baseline clássico, convolucional, recorrente dinâmica e duas abordagens Transformer modernas.
+### DCRNN
+- **Base:** RNN em grafo com **Diffusion Convolution** (propagação no grafo em caminhadas aleatórias) + célula recorrente.
+- **Como funciona:** usa um encoder/decoder temporal e substitui convolução padrão por difusão no grafo, para modelar fluxo de tráfego entre sensores conectados.
+- **Ponto forte:** baseline clássico para dependência temporal + topologia.
+- **Limitação típica:** pode perder capacidade quando a dinâmica muda muito ou quando há forte heterogeneidade entre nós.
 
-## 3) Resumo rápido por dataset
-Fonte principal: `results/md/all-datasets_20260304_163952_comparison_report.md`.
+### GraphWaveNet
+- **Base:** convoluções temporais dilatadas (estilo WaveNet) + convolução em grafo com matriz de adjacência adaptativa.
+- **Como funciona:** extrai padrões temporais em múltiplas escalas com convoluções causais e aprende também conectividades não explícitas no grafo fixo.
+- **Ponto forte:** bom equilíbrio entre desempenho, estabilidade e custo de treino.
+- **Limitação típica:** pode ter nós específicos com erro alto (outliers) mesmo com média boa.
 
-### METR-LA (ranking por MAE)
-1. DGCRN (`0.2757`)
-2. PatchSTG (`0.2937`)
-3. STICformer (`0.3048`)
-4. GraphWaveNet (`0.3139`)
-5. DCRNN (`0.3445`)
-6. MTGNN (`0.3468`)
+### MTGNN
+- **Base:** aprendizado de estrutura de grafo + blocos temporais/convolucionais + propagação multi-hop.
+- **Como funciona:** aprende (ou ajusta) relações entre nós durante o treino e combina isso com modelagem temporal.
+- **Ponto forte:** flexível quando a adjacência original não representa toda a dinâmica.
+- **Limitação típica:** sensível à regularização e pode abrir gap maior entre treino e validação.
 
-### PEMS-BAY (ranking por MAE)
-1. STICformer (`0.2014`)
-2. PatchSTG (`0.2083`)
-3. GraphWaveNet (`0.2244`)
-4. MTGNN (`0.2359`)
-5. DGCRN (`0.2696`)
-6. DCRNN (`0.2841`)
+### DGCRN
+- **Base:** RNN em grafo com **grafo dinâmico** (a conectividade muda ao longo do tempo/estado).
+- **Como funciona:** a célula recorrente usa convolução em grafo onde a estrutura pode variar por passo temporal, tentando capturar não-estacionariedade.
+- **Ponto forte:** forte em MAE quando há dinâmica variável.
+- **Limitação típica:** risco de sobreajuste alto, principalmente quando o grafo dinâmico fica muito flexível.
 
-## 4) Leitura dos plots por modelo e dataset
-### Convenções usadas nesta seção
-- `metrics_by_horizon.png`: mostrei a degradação de curto -> longo prazo (h1 -> h12).
-- `scatter_real_vs_pred.png`: usei os `R²` exibidos no título dos subplots (nós mais difíceis).
-- `train_val_curves.png`: foco em convergência e gap treino-validação.
+### STICformer
+- **Base:** Transformer espaço-temporal (atenção multi-cabeça para dependências no tempo e entre nós).
+- **Como funciona:** usa atenção para capturar relações de longo alcance temporal e padrões espaciais complexos.
+- **Ponto forte:** desempenho robusto e boa generalização no `pems-bay` neste run.
+- **Limitação típica:** validação pode oscilar se regularização/early stopping não estiver bem calibrado.
 
-### A) `metr-la`
+### PatchSTG
+- **Base:** Transformer por **patches temporais** (agregação da sequência em blocos) + modelagem espaço-temporal.
+- **Como funciona:** em vez de processar cada ponto temporal isoladamente, resume janelas (patches), reduz ruído e custo, e aplica atenção sobre representações mais compactas.
+- **Ponto forte:** estabilidade boa e desempenho competitivo em ambos datasets.
+- **Limitação típica:** escolha de patch/stride influencia bastante o resultado.
 
-- **DCRNN**
-  - `metrics_by_horizon`: degradação mais lenta que os demais (`MAE +76.7%`, `RMSE +69.9%`), porém parte de erro alto.
-  - `scatter_real_vs_pred`: muito heterogêneo (`R²` de `0.009` a `0.864`), com nós problemáticos claros.
-  - `train_val_curves`: converge, mas com gap estável (~`0.03-0.04`) e val em platô; generalização mediana.
+## 3) Comentários por modelo (com base no run `20260306_142338`)
 
-- **GraphWaveNet**
-  - `metrics_by_horizon`: erro cresce forte com horizonte (`MAE +153.9%`, `RMSE +107.7%`).
-  - `scatter_real_vs_pred`: consistente (`R²` ~`0.78-0.85`) sem colapso extremo em nó específico.
-  - `train_val_curves`: curva estável, val reduz com oscilações leves; bom equilíbrio.
+### DCRNN
+- **Números:**
+  - `metr-la`: `MAE=0.3411`, `RMSE=0.6264`, `MAPE=123.25`.
+  - `pems-bay`: `MAE=0.2860`, `RMSE=0.5349`, `MAPE=169.69`.
+- **Scatter (`R²`):**
+  - `metr-la`: muito heterogêneo (`0.0228` a `0.8618`).
+  - `pems-bay`: fraco nos nós críticos (`-2.4675` a `0.6264`).
+- **Train/Val:**
+  - `metr-la`: train cai bem, val estabiliza ~`0.34` com gap persistente.
+  - `pems-bay`: gap alto e pico de validação no meio do treino; sinal claro de overfitting.
+- **Leitura:** bom como baseline, mas ficou atrás dos demais neste run.
 
-- **MTGNN**
-  - `metrics_by_horizon`: degradação forte (`MAE +148.8%`, `RMSE +123.3%`).
-  - `scatter_real_vs_pred`: bom ajuste global (`R²` ~`0.82-0.90`).
-  - `train_val_curves`: poucas épocas (parada precoce), val volta a subir após melhora inicial; sinal de limite de generalização.
+### GraphWaveNet
+- **Números:**
+  - `metr-la`: `MAE=0.3256`, `RMSE=0.6207`, `MAPE=113.15`.
+  - `pems-bay`: `MAE=0.2152`, `RMSE=0.4528`, `MAPE=121.46`.
+- **Scatter (`R²`):**
+  - `metr-la`: consistente (`0.7589` a `0.8520`).
+  - `pems-bay`: maioria muito boa, com 1 nó crítico baixo (`0.2656` a `0.9591`).
+- **Train/Val:**
+  - `metr-la`: val oscilante mas controlada, com tendência de queda.
+  - `pems-bay`: convergência estável; gap moderado.
+- **Leitura:** modelo robusto/estável; não foi o melhor absoluto, mas teve comportamento técnico sólido.
 
-- **DGCRN**
-  - `metrics_by_horizon`: melhor MAE global no dataset, mas com degradação forte no horizonte (`MAE +154.0%`, `RMSE +134.5%`).
-  - `scatter_real_vs_pred`: sólido nos nós difíceis (`R²` ~`0.84-0.90`).
-  - `train_val_curves`: gap muito alto (train muito baixo e val oscilante ~`0.33-0.40`); maior risco de overfitting.
+### MTGNN
+- **Números:**
+  - `metr-la`: `MAE=0.3529`, `RMSE=0.6354`, `MAPE=124.08`.
+  - `pems-bay`: `MAE=0.2405`, `RMSE=0.5078`, `MAPE=135.36`.
+- **Scatter (`R²`):**
+  - `metr-la`: bom (`0.7899` a `0.8957`).
+  - `pems-bay`: bom na maioria, 1 nó fraco (`0.3672` a `0.9696`).
+- **Train/Val:**
+  - `metr-la`: poucas épocas, val com picos; indício de instabilidade.
+  - `pems-bay`: val quase lateral e gap relativamente alto no final.
+- **Leitura:** potencial espacial existe, mas generalização ficou abaixo dos top models.
 
-- **STICformer**
-  - `metrics_by_horizon`: degradação forte, mas menos agressiva que vários pares (`MAE +115.0%`, `RMSE +112.4%`).
-  - `scatter_real_vs_pred`: forte consistência (`R²` ~`0.84-0.89`).
-  - `train_val_curves`: treino cai continuamente; val oscila em faixa estreita, com leve subida no fim.
+### DGCRN
+- **Números:**
+  - `metr-la`: `MAE=0.3077` (melhor MAE), `RMSE=0.6284`, `MAPE=124.19`.
+  - `pems-bay`: `MAE=0.2443`, `RMSE=0.5003`, `MAPE=164.52`.
+- **Scatter (`R²`):**
+  - `metr-la`: muito bom e estável (`0.8363` a `0.8935`).
+  - `pems-bay`: mistura de excelente e fraco (`0.3634` a `0.9658`).
+- **Train/Val:**
+  - `metr-la` e `pems-bay`: gap extremo (train muito baixo, val alta e oscilante), perfil clássico de overfitting.
+- **Leitura:** competitivo em MAE no `metr-la`, mas com risco maior de pouca robustez fora do conjunto de treino.
 
-- **PatchSTG**
-  - `metrics_by_horizon`: desempenho global bom, mas degradação relevante (`MAE +153.3%`, `RMSE +121.1%`).
-  - `scatter_real_vs_pred`: consistente (`R²` ~`0.83-0.89`), semelhante ao STICformer.
-  - `train_val_curves`: convergência boa; val relativamente estável com pequeno rebound final.
+### STICformer
+- **Números:**
+  - `metr-la`: `MAE=0.3096`, `RMSE=0.6089`, `MAPE=113.71`.
+  - `pems-bay`: `MAE=0.2036` (melhor), `RMSE=0.4333` (melhor), `MAPE=123.63`.
+- **Scatter (`R²`):**
+  - `metr-la`: forte e estável (`0.8358` a `0.9164`).
+  - `pems-bay`: muito forte com 1 nó difícil (`0.4288` a `0.9559`).
+- **Train/Val:**
+  - `metr-la`: train cai continuamente; val oscila com picos intermediários.
+  - `pems-bay`: boa trajetória geral de validação e gap final relativamente controlado.
+- **Leitura:** melhor compromisso geral do run entre acurácia e estabilidade.
 
-Leitura geral do `metr-la`: **DGCRN ganha em MAE**, mas **PatchSTG/STICformer** mostram perfil mais equilibrado entre ranking e estabilidade visual.
+### PatchSTG
+- **Números:**
+  - `metr-la`: `MAE=0.3082`, `RMSE=0.6086`, `MAPE=111.69`.
+  - `pems-bay`: `MAE=0.2075`, `RMSE=0.4350`, `MAPE=123.13`.
+- **Scatter (`R²`):**
+  - `metr-la`: estável e alto (`0.8265` a `0.8998`).
+  - `pems-bay`: muito bom com 1 nó crítico (`0.4087` a `0.9598`).
+- **Train/Val:**
+  - `metr-la`: convergência boa e gap moderado.
+  - `pems-bay`: val decai e estabiliza em patamar baixo, com oscilações curtas.
+- **Leitura:** muito competitivo; ficou imediatamente atrás do STICformer no `pems-bay` e quase empatado no `metr-la`.
 
-### B) `pems-bay`
+## 4) Resumo final
+- **Melhor modelo geral deste run:** **STICformer** (melhor em `pems-bay` e entre os mais fortes em `metr-la`).
+- **Segundo melhor mais equilibrado:** **PatchSTG** (consistência forte em ambos datasets).
+- **Melhor MAE pontual em `metr-la`:** **DGCRN**, mas com evidências visuais de sobreajuste (gap train/val muito alto).
+- **Modelo mais estável entre os não-Transformers:** **GraphWaveNet**.
+- **Baseline que mais sofreu:** **DCRNN** (principalmente no `pems-bay`, com `R²` muito baixo/negativo em nós difíceis).
 
-- **DCRNN**
-  - `metrics_by_horizon`: menor degradação relativa (`MAE +25.8%`, `RMSE +43.8%`), mas com pior erro absoluto.
-  - `scatter_real_vs_pred`: fraco nos nós difíceis (`R²` de `-2.71` a `0.65`), com dispersão alta.
-  - `train_val_curves`: gap alto e persistente; overfitting claro.
-
-- **GraphWaveNet**
-  - `metrics_by_horizon`: degradação forte (`MAE +126.3%`, `RMSE +146.3%`).
-  - `scatter_real_vs_pred`: muito bom em 5/6 nós (`R²` alto), mas 1 nó crítico com `R²~0.25`.
-  - `train_val_curves`: convergência estável, val cai de forma gradual; bom comportamento geral.
-
-- **MTGNN**
-  - `metrics_by_horizon`: degradação forte (`MAE +196.8%`, `RMSE +222.8%`).
-  - `scatter_real_vs_pred`: padrão semelhante ao GraphWaveNet (maioria boa, 1 nó difícil com `R²~0.33`).
-  - `train_val_curves`: train cai, mas val quase lateral; gap relativamente alto.
-
-- **DGCRN**
-  - `metrics_by_horizon`: pior degradação no dataset (`MAE +328.3%`, `RMSE +274.2%`).
-  - `scatter_real_vs_pred`: heterogêneo (de `R²~0.37` até `0.96`), bom em parte dos nós, fraco em outros.
-  - `train_val_curves`: poucas épocas e gap extremo (train muito baixo vs val alta); forte risco de sobreajuste.
-
-- **STICformer**
-  - `metrics_by_horizon`: melhor resultado absoluto no dataset; degradação de horizonte existe (`MAE +142.3%`, `RMSE +181.9%`).
-  - `scatter_real_vs_pred`: forte em quase todos os nós (`R²` alto, com 1 nó difícil em `~0.46`).
-  - `train_val_curves`: melhor compromisso visual entre queda de val e gap final entre modelos top.
-
-- **PatchSTG**
-  - `metrics_by_horizon`: 2º melhor global, com degradação parecida ao STICformer (`MAE +157.1%`, `RMSE +188.8%`).
-  - `scatter_real_vs_pred`: excelente em maioria dos nós (`R²` alto), 1 nó difícil (`~0.39`).
-  - `train_val_curves`: convergência boa e estável; gap moderado.
-
-Leitura geral do `pems-bay`: **STICformer e PatchSTG** são as opções mais fortes e mais equilibradas; GraphWaveNet vem logo atrás com comportamento robusto.
-
-## 5) Conclusões práticas
-- Para escolha principal hoje, com base nos artefatos atuais: **STICformer** (principal) e **PatchSTG** (backup forte).
-- Para `metr-la`, vale manter **DGCRN** como candidato por MAE, mas com atenção ao risco de overfitting observado em `train_val_curves`.
-- Os `MAPE` por horizonte estão muito altos/instáveis em parte dos gráficos (principalmente com valores próximos de zero no denominador), então a decisão deve priorizar **MAE/RMSE + leitura de scatter**.
-
-## 6) Arquivos usados como base
-- `results/md/all-datasets_20260304_163952_comparison_report.md`
-- `results/md/metr-la_20260304_163952_comparison_report.md`
-- `results/md/pems-bay_20260304_163952_comparison_report.md`
-- `results/plots/*/metrics_by_horizon.png`
-- `results/plots/*/scatter_real_vs_pred.png`
-- `results/plots/*/train_val_curves.png`
+Em termos práticos para próximos ciclos: manter **STICformer** e **PatchSTG** como foco principal, usar **GraphWaveNet** como referência de estabilidade e tratar **DGCRN** com regularização/controle de overfitting se for priorizar MAE em `metr-la`.
