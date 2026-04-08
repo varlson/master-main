@@ -1,0 +1,33 @@
+[
+  {
+    "run_name": "original_pems-bay_PatchSTG_08_04_2026-00h_18-epoch_2_search_seed42",
+    "seed": 42,
+    "phase": "search",
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "patch_len": 4,
+      "patch_stride": 2,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 2,
+      "patience": 5
+    },
+    "mlflow_run_id": "c293d2cc12954deeb8dc71052f19d847",
+    "train_epochs_completed": 2,
+    "train_loss_last": 0.2311572012932677,
+    "val_loss_normalized": 0.26296468249454,
+    "val_mae": 2.276155948638916,
+    "val_rmse": 4.806343078613281,
+    "val_mape": 134317.625,
+    "val_smape": 4.736209869384766,
+    "val_wape": 3.6650192737579346
+  }
+]

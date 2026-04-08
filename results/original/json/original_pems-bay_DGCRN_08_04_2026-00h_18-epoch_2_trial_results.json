@@ -1,0 +1,30 @@
+[
+  {
+    "run_name": "original_pems-bay_DGCRN_08_04_2026-00h_18-epoch_2_search_seed42",
+    "seed": 42,
+    "phase": "search",
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "node_dim": 16,
+      "gcn_depth": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 2,
+      "patience": 5
+    },
+    "mlflow_run_id": "d34b3fc2058844da9177191e557c566d",
+    "train_epochs_completed": 2,
+    "train_loss_last": 0.07511250062992698,
+    "val_loss_normalized": 0.38157510725645033,
+    "val_mae": 2.886068344116211,
+    "val_rmse": 5.798404693603516,
+    "val_mape": 132688.53125,
+    "val_smape": 5.9534149169921875,
+    "val_wape": 4.647087097167969
+  }
+]

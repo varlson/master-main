@@ -1,0 +1,2 @@
+run_name,seed,phase,params,mlflow_run_id,train_epochs_completed,train_loss_last,val_loss_normalized,val_mae,val_rmse,val_mape,val_smape,val_wape
+original_pems-bay_DGCRN_08_04_2026-00h_18-epoch_2_search_seed42,42,search,"{'input_dim': 1, 'hidden_dim': 64, 'output_dim': 1, 'seq_len': 12, 'horizon': 12, 'node_dim': 16, 'gcn_depth': 2, 'dropout': 0.1, 'lr': 0.001, 'weight_decay': 0.0001, 'epochs': 2, 'patience': 5}",d34b3fc2058844da9177191e557c566d,2,0.07511250062992698,0.38157510725645033,2.886068344116211,5.798404693603516,132688.53125,5.9534149169921875,4.647087097167969
