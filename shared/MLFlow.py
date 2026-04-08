@@ -420,6 +420,43 @@ def _save_records(records: list[dict], csv_path: Path, json_path: Path) -> None:
     _save_json(json_path, records)
 
 
+def _save_search_artifacts(
+    *,
+    experiment_name: str,
+    model_name: str,
+    dataset_name: str,
+    selection_metric: str,
+    seeds: list[int],
+    trial_results: list[dict],
+    config_summaries: list[dict],
+    selected_config: dict | None,
+) -> dict:
+    search_csv = CSV_DIR / f"{experiment_name}_trial_results.csv"
+    search_json = JSON_DIR / f"{experiment_name}_trial_results.json"
+    _save_records(trial_results, search_csv, search_json)
+
+    config_csv = CSV_DIR / f"{experiment_name}_config_summaries.csv"
+    config_json = JSON_DIR / f"{experiment_name}_config_summaries.json"
+    _save_records(config_summaries, config_csv, config_json)
+
+    payload = {
+        "timestamp": datetime.now().isoformat(),
+        "experiment_name": experiment_name,
+        "model": model_name,
+        "dataset": dataset_name,
+        "selection_metric": selection_metric,
+        "seeds": seeds,
+        "trial_results_file": str(search_json),
+        "config_summaries_file": str(config_json),
+        "selected_config": selected_config,
+    }
+    summary_file = JSON_DIR / f"{experiment_name}_search_summary.json"
+    _save_json(summary_file, payload)
+    payload["summary_file"] = str(summary_file)
+    print(f"\n💾 Resumo do search salvo em: {summary_file}")
+    return payload
+
+
 def _build_final_summary(
     *,
     experiment_name: str,
@@ -488,6 +525,7 @@ def _run_grid_search(
     generate_plots: bool,
     num_nodes_to_plot: int,
     max_time_points: int,
+    run_final_stage: bool = True,
 ) -> dict:
     keys = list(param_grid.keys())
     values = list(param_grid.values())
@@ -559,11 +597,32 @@ def _run_grid_search(
             "final_summary": None,
         }
 
+    search_summary = _save_search_artifacts(
+        experiment_name=experiment_name,
+        model_name=model_name,
+        dataset_name=dataset_name,
+        selection_metric=selection_metric,
+        seeds=seeds,
+        trial_results=search_trial_results,
+        config_summaries=config_summaries,
+        selected_config=selected_config,
+    )
+
     selected_params = selected_config["params"]
     print(f"\n{'=' * 80}")
     print(f"Melhor configuração por {selection_metric}: {selected_params}")
     print(f"Valor médio: {selected_config.get(f'{selection_metric}_mean', float('nan')):.4f}")
     print(f"{'=' * 80}")
+
+    if not run_final_stage:
+        return {
+            "trial_results": search_trial_results,
+            "config_summaries": config_summaries,
+            "selected_config": selected_config,
+            "final_test_results": [],
+            "final_summary": None,
+            "search_summary": search_summary,
+        }
 
     final_test_results: list[dict] = []
     for seed in seeds:
@@ -619,10 +678,6 @@ def _run_grid_search(
         final_test_results=final_test_results,
     )
 
-    search_csv = CSV_DIR / f"{experiment_name}_trial_results.csv"
-    search_json = JSON_DIR / f"{experiment_name}_trial_results.json"
-    _save_records(search_trial_results, search_csv, search_json)
-
     final_csv = CSV_DIR / f"{experiment_name}_final_test_results.csv"
     final_json = JSON_DIR / f"{experiment_name}_final_test_results.json"
     _save_records(final_test_results, final_csv, final_json)
@@ -634,7 +689,8 @@ def _run_grid_search(
         "dataset": dataset_name,
         "selection_metric": selection_metric,
         "seeds": seeds,
-        "search_trial_results_file": str(search_json),
+        "search_trial_results_file": search_summary["trial_results_file"],
+        "config_summaries_file": search_summary["config_summaries_file"],
         "final_test_results_file": str(final_json),
         "config_summaries": config_summaries,
         "selected_config": selected_config,
@@ -648,6 +704,114 @@ def _run_grid_search(
         "trial_results": search_trial_results,
         "config_summaries": config_summaries,
         "selected_config": selected_config,
+        "final_test_results": final_test_results,
+        "final_summary": final_summary,
+        "search_summary": search_summary,
+    }
+
+
+def run_selected_model(
+    *,
+    model_name: str,
+    params: dict,
+    train_loader,
+    val_loader,
+    test_loader,
+    adj_mx,
+    num_nodes: int,
+    experiment_name: str,
+    dataset_name: str,
+    device: str,
+    normalization_stats: dict | None,
+    seeds: list[int],
+    selection_metric: str,
+    generate_plots: bool,
+    num_nodes_to_plot: int,
+    max_time_points: int,
+    selected_config: dict | None = None,
+) -> dict:
+    resolved_selected_config = dict(selected_config or {})
+    resolved_selected_config["params"] = dict(params)
+    resolved_selected_config.setdefault("num_completed_seeds", len(seeds))
+    resolved_selected_config.setdefault("seeds", list(seeds))
+
+    final_test_results: list[dict] = []
+    for seed in seeds:
+        try:
+            final_result = _run_single_training(
+                model_name=model_name,
+                params=params,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                test_loader=test_loader,
+                adj_mx=adj_mx,
+                num_nodes=num_nodes,
+                experiment_name=experiment_name,
+                dataset_name=dataset_name,
+                seed=seed,
+                phase="final",
+                device=device,
+                normalization_stats=normalization_stats,
+                generate_plots=generate_plots,
+                num_nodes_to_plot=num_nodes_to_plot,
+                max_time_points=max_time_points,
+            )
+            final_test_results.append(final_result)
+            print(
+                "✅ Final concluído: "
+                f"seed={seed}, test_mae={final_result.get('test_mae', float('nan')):.4f}, "
+                f"test_rmse={final_result.get('test_rmse', float('nan')):.4f}"
+            )
+        except Exception as exc:
+            print(f"Tipo do erro: {type(exc).__name__}")
+            print(f"Mensagem: {str(exc)}")
+            print(f"\n{'=' * 60}")
+            print("TRACEBACK COMPLETO:")
+            print(f"{'=' * 60}")
+            traceback.print_exc()
+
+    if not final_test_results:
+        print("❌ Nenhum resultado final de teste obtido!")
+        return {
+            "trial_results": [],
+            "config_summaries": [],
+            "selected_config": resolved_selected_config,
+            "final_test_results": [],
+            "final_summary": None,
+        }
+
+    final_summary = _build_final_summary(
+        experiment_name=experiment_name,
+        model_name=model_name,
+        dataset_name=dataset_name,
+        selection_metric=selection_metric,
+        selected_config=resolved_selected_config,
+        final_test_results=final_test_results,
+    )
+
+    final_csv = CSV_DIR / f"{experiment_name}_final_test_results.csv"
+    final_json = JSON_DIR / f"{experiment_name}_final_test_results.json"
+    _save_records(final_test_results, final_csv, final_json)
+
+    summary_payload = {
+        "timestamp": datetime.now().isoformat(),
+        "experiment_name": experiment_name,
+        "model": model_name,
+        "dataset": dataset_name,
+        "selection_metric": selection_metric,
+        "seeds": seeds,
+        "selected_config": resolved_selected_config,
+        "final_test_results_file": str(final_json),
+        "final_summary": final_summary,
+    }
+    summary_file = JSON_DIR / f"{experiment_name}_selected_summary.json"
+    _save_json(summary_file, summary_payload)
+    print(f"\n💾 Resumo da execução selecionada salvo em: {summary_file}")
+
+    return {
+        "trial_results": [],
+        "config_summaries": [],
+        "selected_config": resolved_selected_config,
         "final_test_results": final_test_results,
         "final_summary": final_summary,
     }
@@ -669,6 +833,7 @@ def GraphWaveNet_grid_search(
     generate_plots=True,
     num_nodes_to_plot=4,
     max_time_points=350,
+    run_final_stage=True,
 ):
     return _run_grid_search(
         model_name="GraphWaveNet",
@@ -687,6 +852,7 @@ def GraphWaveNet_grid_search(
         generate_plots=generate_plots,
         num_nodes_to_plot=num_nodes_to_plot,
         max_time_points=max_time_points,
+        run_final_stage=run_final_stage,
     )
 
 
@@ -706,6 +872,7 @@ def DCRNN_grid_search(
     generate_plots=True,
     num_nodes_to_plot=4,
     max_time_points=350,
+    run_final_stage=True,
 ):
     return _run_grid_search(
         model_name="DCRNN",
@@ -724,6 +891,7 @@ def DCRNN_grid_search(
         generate_plots=generate_plots,
         num_nodes_to_plot=num_nodes_to_plot,
         max_time_points=max_time_points,
+        run_final_stage=run_final_stage,
     )
 
 
@@ -743,6 +911,7 @@ def MTGNN_grid_search(
     generate_plots=True,
     num_nodes_to_plot=4,
     max_time_points=350,
+    run_final_stage=True,
 ):
     return _run_grid_search(
         model_name="MTGNN",
@@ -761,6 +930,7 @@ def MTGNN_grid_search(
         generate_plots=generate_plots,
         num_nodes_to_plot=num_nodes_to_plot,
         max_time_points=max_time_points,
+        run_final_stage=run_final_stage,
     )
 
 
@@ -780,6 +950,7 @@ def DGCRN_grid_search(
     generate_plots=True,
     num_nodes_to_plot=4,
     max_time_points=350,
+    run_final_stage=True,
 ):
     return _run_grid_search(
         model_name="DGCRN",
@@ -798,6 +969,7 @@ def DGCRN_grid_search(
         generate_plots=generate_plots,
         num_nodes_to_plot=num_nodes_to_plot,
         max_time_points=max_time_points,
+        run_final_stage=run_final_stage,
     )
 
 
@@ -817,6 +989,7 @@ def STICformer_grid_search(
     generate_plots=True,
     num_nodes_to_plot=4,
     max_time_points=350,
+    run_final_stage=True,
 ):
     return _run_grid_search(
         model_name="STICformer",
@@ -835,6 +1008,7 @@ def STICformer_grid_search(
         generate_plots=generate_plots,
         num_nodes_to_plot=num_nodes_to_plot,
         max_time_points=max_time_points,
+        run_final_stage=run_final_stage,
     )
 
 
@@ -854,6 +1028,7 @@ def PatchSTG_grid_search(
     generate_plots=True,
     num_nodes_to_plot=4,
     max_time_points=350,
+    run_final_stage=True,
 ):
     return _run_grid_search(
         model_name="PatchSTG",
@@ -872,4 +1047,5 @@ def PatchSTG_grid_search(
         generate_plots=generate_plots,
         num_nodes_to_plot=num_nodes_to_plot,
         max_time_points=max_time_points,
+        run_final_stage=run_final_stage,
     )

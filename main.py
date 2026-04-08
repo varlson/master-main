@@ -19,11 +19,14 @@ from shared.MLFlow import (
     DGCRN_grid_search,
     STICformer_grid_search,
     PatchSTG_grid_search,
+    run_selected_model,
     set_results_root,
 )
 from shared.reproducibility import parse_seeds
 from shared.resultSumarization import (
+    consolidate_search_experiment_results,
     consolidate_experiment_results,
+    create_search_report,
     create_comparison_report,
     export_best_configs_to_json,
 )
@@ -34,6 +37,7 @@ class RuntimeConfig:
     config_source: str
     config_file: Path
     experiment: str
+    pipeline_mode: str
     run_original: bool
     run_backbone: bool
     dataset_names: list[str]
@@ -41,6 +45,7 @@ class RuntimeConfig:
     original_npy_dir: Path
     backbone_npy_dir: Path
     results_dir: Path
+    selected_configs_file: Path | None
     device: str
     seq_len: int
     horizon: int
@@ -100,6 +105,20 @@ def _parse_names(value: Any) -> list[str]:
         return names
 
     raise ValueError(f"Lista de nomes invalida: {value!r}")
+
+
+def _parse_optional_path(value: Any, key_name: str) -> Path | None:
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    try:
+        return Path(text)
+    except TypeError as exc:
+        raise ValueError(f"Caminho invalido para '{key_name}': {value!r}") from exc
 
 
 def _load_json_config(config_file: Path) -> dict[str, Any]:
@@ -192,6 +211,19 @@ def load_runtime_config() -> RuntimeConfig:
     run_original = experiment in {"original", "both"}
     run_backbone = experiment in {"backbone", "both"}
 
+    pipeline_mode = str(
+        _resolve_raw_value(
+            key="PIPELINE_MODE",
+            default="both",
+            config_source=config_source,
+            json_config=json_config,
+        )
+    ).strip().lower()
+    if pipeline_mode not in {"grid_search", "selected", "both"}:
+        raise ValueError(
+            "PIPELINE_MODE invalido. Use 'grid_search', 'selected' ou 'both'."
+        )
+
     backbone_dataset_names = _parse_names(
         _resolve_raw_value(
             key="BACKBONE_DATASET_NAMES",
@@ -217,11 +249,28 @@ def load_runtime_config() -> RuntimeConfig:
     run_label = f"{run_stamp}-epoch_{epochs}"
 
     device_default = "cuda" if torch.cuda.is_available() else "cpu"
+    selected_configs_file = _parse_optional_path(
+        _resolve_raw_value(
+            key="SELECTED_CONFIGS_FILE",
+            default="",
+            config_source=config_source,
+            json_config=json_config,
+        ),
+        "SELECTED_CONFIGS_FILE",
+    )
+    if selected_configs_file is not None and not selected_configs_file.is_absolute():
+        selected_configs_file = (config_file.parent / selected_configs_file).resolve()
+
+    if pipeline_mode == "selected" and selected_configs_file is None:
+        raise ValueError(
+            "SELECTED_CONFIGS_FILE e obrigatorio quando PIPELINE_MODE='selected'."
+        )
 
     return RuntimeConfig(
         config_source=config_source,
         config_file=config_file,
         experiment=experiment,
+        pipeline_mode=pipeline_mode,
         run_original=run_original,
         run_backbone=run_backbone,
         dataset_names=dataset_names,
@@ -250,6 +299,7 @@ def load_runtime_config() -> RuntimeConfig:
                 json_config=json_config,
             )
         ),
+        selected_configs_file=selected_configs_file,
         device=str(
             _resolve_raw_value(
                 key="DEVICE",
@@ -422,6 +472,50 @@ def resolve_dataset_paths(dataset_name: str, npy_dir: Path) -> tuple[Path, Path]
     return data_path, adj_path
 
 
+def load_selected_configs(selected_configs_file: Path) -> dict[str, dict[str, dict]]:
+    if not selected_configs_file.exists():
+        raise FileNotFoundError(
+            f"Arquivo de configuracoes selecionadas nao encontrado: {selected_configs_file}"
+        )
+
+    with selected_configs_file.open("r", encoding="utf-8") as file:
+        payload = json.load(file)
+
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"O arquivo {selected_configs_file} deve conter um objeto JSON com dataset -> model -> config."
+        )
+
+    return payload
+
+
+def resolve_selected_model_config(
+    *,
+    selected_configs_by_dataset: dict[str, dict[str, dict]],
+    dataset_name: str,
+    model_name: str,
+) -> tuple[dict, dict]:
+    dataset_configs = selected_configs_by_dataset.get(dataset_name)
+    if not isinstance(dataset_configs, dict):
+        raise KeyError(
+            f"Dataset '{dataset_name}' nao encontrado no arquivo de configuracoes selecionadas."
+        )
+
+    selected_config = dataset_configs.get(model_name)
+    if not isinstance(selected_config, dict):
+        raise KeyError(
+            f"Modelo '{model_name}' nao encontrado nas configuracoes selecionadas para o dataset '{dataset_name}'."
+        )
+
+    selected_params = selected_config.get("selected_params")
+    if not isinstance(selected_params, dict) or not selected_params:
+        raise ValueError(
+            f"selected_params invalido para '{dataset_name}' / '{model_name}' no arquivo salvo."
+        )
+
+    return selected_config, selected_params
+
+
 def build_param_grids(seq_len: int, horizon: int, epochs: int) -> tuple[dict, dict, dict, dict, dict, dict]:
     # Grid enxuto por padrao para facilitar execucao inicial.
     dcrnn_param_grid = {
@@ -548,6 +642,7 @@ def run_model_experiment(
     normalization_stats: dict,
     experiment_type: str,
     config: RuntimeConfig,
+    selected_configs_by_dataset: dict[str, dict[str, dict]] | None = None,
 ) -> dict | None:
     experiment_name = f"{experiment_type}_{dataset_name}_{model_name}_{config.run_label}"
 
@@ -556,28 +651,71 @@ def run_model_experiment(
     print(f"Modelo: {model_name} | Device: {config.device}")
     print(f"{'#' * 90}")
 
-    grid_result = grid_search_fn(
-        param_grid=param_grid,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        test_loader=test_loader,
-        adj_mx=adj_mx,
-        num_nodes=num_nodes,
-        experiment_name=experiment_name,
-        dataset_name=dataset_name,
-        device=config.device,
-        normalization_stats=normalization_stats,
-        seeds=config.seeds,
-        selection_metric=config.selection_metric,
-        generate_plots=config.generate_plots,
-        num_nodes_to_plot=config.plots_num_nodes,
-        max_time_points=config.plots_max_time_points,
-    )
+    effective_selection_metric = config.selection_metric
+    if config.pipeline_mode == "selected":
+        if selected_configs_by_dataset is None:
+            raise ValueError(
+                "selected_configs_by_dataset deve ser fornecido no pipeline 'selected'."
+            )
 
-    final_summary = grid_result.get("final_summary") if grid_result else None
-    if not final_summary:
-        print(f"Sem resultados validos para {model_name}.")
-        return None
+        selected_config, selected_params = resolve_selected_model_config(
+            selected_configs_by_dataset=selected_configs_by_dataset,
+            dataset_name=dataset_name,
+            model_name=model_name,
+        )
+        selected_metric = str(
+            selected_config.get("selection_metric", config.selection_metric)
+        ).strip().lower()
+        effective_selection_metric = selected_metric
+
+        grid_result = run_selected_model(
+            model_name=model_name,
+            params=selected_params,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            adj_mx=adj_mx,
+            num_nodes=num_nodes,
+            experiment_name=experiment_name,
+            dataset_name=dataset_name,
+            device=config.device,
+            normalization_stats=normalization_stats,
+            seeds=config.seeds,
+            selection_metric=selected_metric,
+            generate_plots=config.generate_plots,
+            num_nodes_to_plot=config.plots_num_nodes,
+            max_time_points=config.plots_max_time_points,
+            selected_config=selected_config,
+        )
+    else:
+        grid_result = grid_search_fn(
+            param_grid=param_grid,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            adj_mx=adj_mx,
+            num_nodes=num_nodes,
+            experiment_name=experiment_name,
+            dataset_name=dataset_name,
+            device=config.device,
+            normalization_stats=normalization_stats,
+            seeds=config.seeds,
+            selection_metric=config.selection_metric,
+            generate_plots=config.generate_plots,
+            num_nodes_to_plot=config.plots_num_nodes,
+            max_time_points=config.plots_max_time_points,
+            run_final_stage=config.pipeline_mode == "both",
+        )
+
+    if config.pipeline_mode == "grid_search":
+        if not (grid_result and grid_result.get("selected_config")):
+            print(f"Sem configuracoes selecionadas para {model_name}.")
+            return None
+    else:
+        final_summary = grid_result.get("final_summary") if grid_result else None
+        if not final_summary:
+            print(f"Sem resultados validos para {model_name}.")
+            return None
 
     return {
         "experiment_name": experiment_name,
@@ -587,13 +725,15 @@ def run_model_experiment(
         "config_summaries": grid_result.get("config_summaries", []),
         "selected_config": grid_result.get("selected_config"),
         "final_test_results": grid_result.get("final_test_results", []),
-        "final_summary": final_summary,
+        "final_summary": grid_result.get("final_summary"),
+        "search_summary": grid_result.get("search_summary"),
         "metadata": {
             "run_label": config.run_label,
             "experiment_type": experiment_type,
+            "pipeline_mode": config.pipeline_mode,
             "device": config.device,
             "seeds": config.seeds,
-            "selection_metric": config.selection_metric,
+            "selection_metric": effective_selection_metric,
             "num_nodes": num_nodes,
             "seq_len": config.seq_len,
             "horizon": config.horizon,
@@ -602,6 +742,9 @@ def run_model_experiment(
             "total_trials": len(grid_result.get("trial_results", [])),
             "num_configs_tested": len(grid_result.get("config_summaries", [])),
             "selected_config": grid_result.get("selected_config") or {},
+            "selected_configs_file": (
+                str(config.selected_configs_file) if config.selected_configs_file else None
+            ),
         },
     }
 
@@ -612,6 +755,7 @@ def consolidate_outputs(
     output_scope: str,
     results_root: Path,
     run_label: str,
+    pipeline_mode: str,
 ) -> None:
     results_root.mkdir(parents=True, exist_ok=True)
 
@@ -624,6 +768,38 @@ def consolidate_outputs(
     md_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = f"{output_scope}_{run_label}"
+    if pipeline_mode == "grid_search":
+        consolidated_df = consolidate_search_experiment_results(
+            experiments_data=experiments_data,
+            output_csv=f"{prefix}_selected_configs.csv",
+            output_json=f"{prefix}_selected_configs.json",
+            primary_metric="val_mae_mean",
+            save_path=results_root,
+        )
+
+        if consolidated_df.empty:
+            print("Consolidacao vazia. Nenhum relatorio adicional foi gerado.")
+            return
+
+        create_search_report(
+            consolidated_df=consolidated_df,
+            output_file=f"{prefix}_selection_report.md",
+            save_path=results_root,
+        )
+
+        export_best_configs_to_json(
+            consolidated_df=consolidated_df,
+            output_file=f"{prefix}_best_configs.json",
+            save_path=results_root,
+        )
+
+        print("\nArquivos consolidados gerados em:")
+        print(f"- {csv_dir / f'{prefix}_selected_configs.csv'}")
+        print(f"- {json_dir / f'{prefix}_selected_configs.json'}")
+        print(f"- {md_dir / f'{prefix}_selection_report.md'}")
+        print(f"- {json_dir / f'{prefix}_best_configs.json'}")
+        return
+
     consolidated_df = consolidate_experiment_results(
         experiments_data=experiments_data,
         output_csv=f"{prefix}_consolidated_experiments.csv",
@@ -662,6 +838,7 @@ def run_dataset_pipeline(
     experiment_type: str,
     results_root: Path,
     config: RuntimeConfig,
+    selected_configs_by_dataset: dict[str, dict[str, dict]] | None = None,
 ) -> list[dict]:
     print(f"\n{'=' * 100}")
     print(f"Tipo de experimento: {experiment_type}")
@@ -724,6 +901,7 @@ def run_dataset_pipeline(
                 normalization_stats=stats,
                 experiment_type=experiment_type,
                 config=config,
+                selected_configs_by_dataset=selected_configs_by_dataset,
             )
             if result is not None:
                 experiments_data.append(result)
@@ -740,6 +918,7 @@ def run_dataset_pipeline(
         output_scope=dataset_name,
         results_root=results_root,
         run_label=config.run_label,
+        pipeline_mode=config.pipeline_mode,
     )
     return experiments_data
 
@@ -753,11 +932,19 @@ def run_experiment_group(
 ) -> None:
     results_root = config.results_dir / experiment_type
     set_results_root(results_root)
+    selected_configs_by_dataset: dict[str, dict[str, dict]] | None = None
+    if config.pipeline_mode == "selected":
+        if config.selected_configs_file is None:
+            raise ValueError(
+                "SELECTED_CONFIGS_FILE deve ser informado para o pipeline 'selected'."
+            )
+        selected_configs_by_dataset = load_selected_configs(config.selected_configs_file)
 
     print(f"\n{'=' * 100}")
     print(f"Iniciando grupo de experimento: {experiment_type}")
     print(f"Datasets: {dataset_names}")
     print(f"Diretorio de resultados: {results_root}")
+    print(f"Pipeline: {config.pipeline_mode}")
     print(f"{'=' * 100}")
 
     all_experiments_data: list[dict] = []
@@ -770,6 +957,7 @@ def run_experiment_group(
                 experiment_type=experiment_type,
                 results_root=results_root,
                 config=config,
+                selected_configs_by_dataset=selected_configs_by_dataset,
             )
             if dataset_experiments:
                 all_experiments_data.extend(dataset_experiments)
@@ -790,6 +978,7 @@ def run_experiment_group(
             output_scope="all-datasets",
             results_root=results_root,
             run_label=config.run_label,
+            pipeline_mode=config.pipeline_mode,
         )
 
 
@@ -801,10 +990,13 @@ def main() -> None:
     if config.config_source == "json":
         print(f"- Arquivo de configuracao: {config.config_file}")
     print(f"- EXPERIMENT: {config.experiment}")
+    print(f"- PIPELINE_MODE: {config.pipeline_mode}")
     print(f"- RUN_LABEL: {config.run_label}")
     print(f"- DEVICE: {config.device}")
     print(f"- SEEDS: {config.seeds}")
     print(f"- SELECTION_METRIC: {config.selection_metric}")
+    if config.selected_configs_file is not None:
+        print(f"- SELECTED_CONFIGS_FILE: {config.selected_configs_file}")
 
     if config.run_original:
         run_experiment_group(

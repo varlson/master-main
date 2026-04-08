@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "backbone_metr-la-by-disp_fil-with-alpah_filter0_1_DCRNN_07_04_2026-19h_34-epoch_2_search_seed42",
+    "seed": 42,
+    "phase": "search",
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 2,
+      "patience": 5,
+      "use_scheduled_sampling": false,
+      "teacher_forcing_ratio": 0.5
+    },
+    "mlflow_run_id": "c666222685c848fdbc04f264005f2438",
+    "train_epochs_completed": 2,
+    "train_loss_last": 0.3091224139134089,
+    "val_loss_normalized": 0.34433113700813717,
+    "val_mae": 6.098601818084717,
+    "val_rmse": 11.574466705322266,
+    "val_mape": 11449539200.0,
+    "val_smape": 24.712000787258148,
+    "val_wape": 11.125822000331814
+  }
+]

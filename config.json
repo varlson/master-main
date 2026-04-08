@@ -1,5 +1,6 @@
 {
   "experiment": "backbone",
+  "pipeline_mode": "grid_search",
   "dataset_names": ["pems-bay"],
   "backbone_dataset_names": [
     "metr-la-by-disp_fil-with-alpah_filter0_1",

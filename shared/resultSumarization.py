@@ -195,6 +195,102 @@ def consolidate_experiment_results(
     return df
 
 
+def consolidate_search_experiment_results(
+    experiments_data: List[Dict],
+    output_csv: str = "selected_configs.csv",
+    output_json: str = "selected_configs.json",
+    primary_metric: str = "val_mae_mean",
+    save_path: Optional[Path] = None,
+) -> pd.DataFrame:
+    """
+    Consolida configurações selecionadas pela busca sem executar a fase final.
+    """
+    if save_path is None:
+        save_path = Path(".")
+    else:
+        save_path = Path(save_path)
+        save_path.mkdir(parents=True, exist_ok=True)
+
+    csv_dir = _results_subdir(save_path, "csv")
+    json_dir = _results_subdir(save_path, "json")
+    prefix = Path(output_csv).stem
+
+    rows = []
+    for exp in experiments_data:
+        selected_config = exp.get("selected_config")
+        if not selected_config:
+            print(f"⚠️  Experimento {exp['experiment_name']} sem selected_config, pulando...")
+            continue
+
+        metadata = exp.get("metadata", {})
+        row = {
+            "experiment_name": exp["experiment_name"],
+            "model": exp["model"],
+            "dataset": exp["dataset"],
+            "selection_metric": metadata.get("selection_metric"),
+            "selected_params": _safe_json(selected_config.get("params", {})),
+            "selected_num_completed_seeds": selected_config.get("num_completed_seeds"),
+            "timestamp": datetime.now().isoformat(),
+            **{
+                key: value
+                for key, value in selected_config.items()
+                if key.startswith("val_")
+            },
+        }
+        rows.append(row)
+
+    if not rows:
+        print("❌ Nenhuma configuração selecionada válida para consolidar!")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    if primary_metric in df.columns:
+        df["rank_in_dataset"] = (
+            df.groupby("dataset")[primary_metric]
+            .rank(method="dense", ascending=True)
+            .astype(int)
+        )
+        best_per_dataset = df.groupby("dataset")[primary_metric].transform("min")
+        df["delta_vs_best_pct"] = ((df[primary_metric] / best_per_dataset) - 1.0) * 100.0
+        df = df.sort_values(["dataset", "rank_in_dataset", primary_metric, "model"]).reset_index(drop=True)
+
+    csv_path = csv_dir / output_csv
+    df.to_csv(csv_path, index=False)
+    print(f"✔ CSV de seleção salvo: {csv_path}")
+
+    detailed = {
+        "timestamp": datetime.now().isoformat(),
+        "primary_metric": primary_metric,
+        "total_experiments": len(experiments_data),
+        "successful_experiments": len(df),
+        "summary_rows": df.to_dict("records"),
+        "experiments": [
+            {
+                "experiment_name": exp["experiment_name"],
+                "model": exp["model"],
+                "dataset": exp["dataset"],
+                "metadata": exp.get("metadata", {}),
+                "selected_config": exp.get("selected_config"),
+                "search_summary": exp.get("search_summary"),
+            }
+            for exp in experiments_data
+        ],
+    }
+
+    json_path = json_dir / output_json
+    with json_path.open("w", encoding="utf-8") as file:
+        json.dump(detailed, file, indent=2, ensure_ascii=False)
+    print(f"✔ JSON de seleção salvo: {json_path}")
+
+    _export_long_tables(
+        experiments_data=experiments_data,
+        save_path=save_path,
+        prefix=prefix,
+    )
+
+    return df
+
+
 def create_comparison_report(
     consolidated_df: pd.DataFrame,
     output_file: str = "comparison_report.md",
@@ -289,6 +385,61 @@ def create_comparison_report(
             )
 
     print(f"✔ Relatório salvo: {report_path}")
+
+
+def create_search_report(
+    consolidated_df: pd.DataFrame,
+    output_file: str = "selection_report.md",
+    save_path: Optional[Path] = None,
+) -> None:
+    """
+    Cria relatório markdown com foco nas configurações escolhidas na busca.
+    """
+    if save_path is None:
+        save_path = Path(".")
+    else:
+        save_path = Path(save_path)
+
+    md_dir = _results_subdir(save_path, "md")
+    report_path = md_dir / output_file
+
+    with report_path.open("w", encoding="utf-8") as file:
+        file.write("# Relatório de Seleção de Configurações\n\n")
+        file.write(f"**Gerado em:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        file.write(f"**Total de experimentos consolidados:** {len(consolidated_df)}\n\n")
+        file.write(
+            "Os números abaixo representam o melhor conjunto de hiperparâmetros escolhido "
+            "pela métrica de validação, sem executar a fase final de teste.\n\n"
+        )
+
+        file.write("## Ranking por Dataset\n\n")
+        for dataset in consolidated_df["dataset"].unique():
+            dataset_df = consolidated_df[consolidated_df["dataset"] == dataset]
+            file.write(f"### {dataset}\n\n")
+            file.write("| Rank | Modelo | Val MAE | Val RMSE | Delta vs melhor (%) |\n")
+            file.write("|------|--------|---------|----------|----------------------|\n")
+            for _, row in dataset_df.sort_values(["rank_in_dataset", "val_mae_mean"]).iterrows():
+                file.write(
+                    f"| {int(row.get('rank_in_dataset', 0))} | {row['model']} | "
+                    f"{row.get('val_mae_mean', float('nan')):.4f} ± {row.get('val_mae_std', 0.0):.4f} | "
+                    f"{row.get('val_rmse_mean', float('nan')):.4f} ± {row.get('val_rmse_std', 0.0):.4f} | "
+                    f"{row.get('delta_vs_best_pct', 0.0):.2f} |\n"
+                )
+            file.write("\n")
+
+        file.write("## Configurações Selecionadas\n\n")
+        for _, row in consolidated_df.iterrows():
+            file.write(f"### {row['experiment_name']}\n\n")
+            file.write(f"- Modelo: {row['model']}\n")
+            file.write(f"- Dataset: {row['dataset']}\n")
+            file.write(f"- Métrica de seleção: `{row['selection_metric']}`\n")
+            file.write(
+                f"- Seeds concluídas no search: {int(row.get('selected_num_completed_seeds', 0) or 0)}\n"
+            )
+            file.write(f"- Validação (MAE): {row.get('val_mae_mean', float('nan')):.4f}\n")
+            file.write(f"- Parâmetros: `{row['selected_params']}`\n\n")
+
+    print(f"✔ Relatório de seleção salvo: {report_path}")
 
 
 def export_best_configs_to_json(
