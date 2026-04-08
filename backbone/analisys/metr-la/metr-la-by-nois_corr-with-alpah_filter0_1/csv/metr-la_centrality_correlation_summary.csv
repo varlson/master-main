@@ -1,0 +1,6 @@
+dataset,original_graph,backbone_graph,metric,num_common_nodes,spearman_corr,pearson_corr
+metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,degree_centrality,207,-0.26074972767531635,-0.20961511987998432
+metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,betweenness_centrality,207,0.4205645499137564,0.5385516881005527
+metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,closeness_centrality,207,0.534344075627847,0.5284973152121377
+metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,eigenvector_centrality,207,-0.19362140251756121,-0.11430946569269725
+metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,pagerank,207,0.3373765054510023,0.4107775562992367

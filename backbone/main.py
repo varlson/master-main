@@ -9,13 +9,12 @@ Uso:
     python3 main.py
 
 Tambem aceita parametros opcionais:
-    python3 main.py --datasets metr-la --methods disp_fil high_sal --cuts alpha
+    python3 main.py --datasets metr-la --methods disp_fil high_sal
 """
 
 from __future__ import annotations
 
 import argparse
-import itertools
 import os
 import pickle
 import sys
@@ -32,7 +31,6 @@ NPY_DIR = DATA_DIR / "npy"
 PKL_DIR = DATA_DIR / "pkl"
 DEFAULT_DATASET_LIST = ["metr-la", "pems-bay"]
 DEFAULT_ALPHA = 0.1
-DEFAULT_PERCENTILE = 0.30
 DEFAULT_MIN_DEGREE = 1
 
 
@@ -44,18 +42,10 @@ def _prepare_imports() -> None:
 
 
 def _dataset_backbone_combinations(
-    methods: list[str], alpha: float, percentile: float, cuts: list[str]
+    methods: list[str], alpha: float
 ) -> list[tuple[str, str]]:
     alpha_cut = f"alpah_filter{str(alpha).replace('.', '_')}"
-    percentile_cut = f"percen_filter{str(percentile).replace('.', '_')}"
-
-    active_cuts: list[str] = []
-    if "alpha" in cuts:
-        active_cuts.append(alpha_cut)
-    if "percentile" in cuts:
-        active_cuts.append(percentile_cut)
-
-    return list(itertools.product(methods, active_cuts))
+    return [(method, alpha_cut) for method in methods]
 
 
 def _update_h5(
@@ -141,23 +131,21 @@ def _save_filtered_graph(
     )
 
 
-def _load_runtime_defaults() -> tuple[list[str], float, float, int]:
+def _load_runtime_defaults() -> tuple[list[str], float, int]:
     datasets = list(DEFAULT_DATASET_LIST)
     alpha = DEFAULT_ALPHA
-    percentile = DEFAULT_PERCENTILE
     min_degree = DEFAULT_MIN_DEGREE
 
     try:
-        from config import ALPHA, DATASET_LIST, MIN_DEGREE, PERCENTILE
+        from config import ALPHA, DATASET_LIST, MIN_DEGREE
 
         datasets = list(DATASET_LIST)
         alpha = ALPHA
-        percentile = PERCENTILE
         min_degree = MIN_DEGREE
     except Exception as exc:
         print(f"Warning: could not import config.py ({exc}). Using local defaults.")
 
-    return datasets, alpha, percentile, min_degree
+    return datasets, alpha, min_degree
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -178,23 +166,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Metodos de backbone a executar.",
     )
     parser.add_argument(
-        "--cuts",
-        nargs="+",
-        choices=["alpha", "percentile"],
-        default=["alpha", "percentile"],
-        help="Tipos de corte a executar.",
-    )
-    parser.add_argument(
         "--alpha",
         type=float,
         default=None,
         help="Threshold de alpha (padrao: ALPHA do config.py).",
-    )
-    parser.add_argument(
-        "--percentile",
-        type=float,
-        default=None,
-        help="Threshold de percentil (padrao: PERCENTILE do config.py).",
     )
     parser.add_argument(
         "--min-degree",
@@ -209,6 +184,7 @@ def main() -> None:
     os.chdir(SCRIPT_DIR)
     _prepare_imports()
 
+    from analisys import run_single_backbone_analysis
     from disparity_filter import DisparityFilter
     from high_salience_skeleton import HighSalienceSkeleton
     from noise_corrected import NoiseCorrectedFilter
@@ -216,13 +192,10 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    defaults_dataset, defaults_alpha, defaults_percentile, defaults_min_degree = (
-        _load_runtime_defaults()
-    )
+    defaults_dataset, defaults_alpha, defaults_min_degree = _load_runtime_defaults()
 
     datasets = args.datasets if args.datasets is not None else defaults_dataset
     alpha = defaults_alpha if args.alpha is None else args.alpha
-    percentile = defaults_percentile if args.percentile is None else args.percentile
     min_degree = defaults_min_degree if args.min_degree is None else args.min_degree
 
     NPY_DIR.mkdir(parents=True, exist_ok=True)
@@ -233,11 +206,9 @@ def main() -> None:
     combinations = _dataset_backbone_combinations(
         methods=args.methods,
         alpha=alpha,
-        percentile=percentile,
-        cuts=args.cuts,
     )
     if not combinations:
-        raise ValueError("Nenhuma combinacao para executar. Revise --methods e --cuts.")
+        raise ValueError("Nenhuma combinacao para executar. Revise --methods.")
 
     backbone_data_names: list[str] = []
 
@@ -259,36 +230,21 @@ def main() -> None:
 
             if method == "disp_fil":
                 df = DisparityFilter(graph)
-                if cut.startswith("percen"):
-                    filtered_graph = df.filter_by_percentile(
-                        percentile=percentile, min_degree=min_degree
-                    )
-                else:
-                    filtered_graph = df.filter_by_alpha(
-                        alpha=alpha, min_degree=min_degree
-                    )
+                filtered_graph = df.filter_by_alpha(
+                    alpha=alpha, min_degree=min_degree
+                )
                 nodes_to_keep = df.nodesToKeep
             elif method == "nois_corr":
                 ncf = NoiseCorrectedFilter(graph, undirected=True, use_p_value=False)
-                if cut.startswith("percen"):
-                    filtered_graph = ncf.filter_by_percentile(
-                        percentile=percentile, min_degree=min_degree
-                    )
-                else:
-                    filtered_graph = ncf.filter_by_alpha(
-                        alpha=alpha, min_degree=min_degree
-                    )
+                filtered_graph = ncf.filter_by_alpha(
+                    alpha=alpha, min_degree=min_degree
+                )
                 nodes_to_keep = ncf.nodesToKeep
             elif method == "high_sal":
                 hss = HighSalienceSkeleton(graph)
-                if cut.startswith("percen"):
-                    filtered_graph = hss.filter_by_percentile(
-                        percentile=percentile, min_degree=min_degree
-                    )
-                else:
-                    filtered_graph = hss.filter_by_alpha(
-                        alpha=alpha, min_degree=min_degree
-                    )
+                filtered_graph = hss.filter_by_alpha(
+                    alpha=alpha, min_degree=min_degree
+                )
                 nodes_to_keep = hss.nodesToKeep
             else:
                 raise ValueError(f"Metodo de backbone nao suportado: {method}")
@@ -304,6 +260,17 @@ def main() -> None:
                 output_name,
                 NPY_DIR / f"{output_name}-adj_mx.npy",
             )
+
+            analysis_output_root = SCRIPT_DIR / "analisys" / dataset / output_name
+            backbone_graphml_path = DATA_DIR / "GraphML" / f"{output_name}.GraphML"
+            original_graphml_path = DATA_DIR / "GraphML" / f"{dataset}.GraphML"
+            analysis_output = run_single_backbone_analysis(
+                dataset=dataset,
+                original_path=original_graphml_path,
+                backbone_path=backbone_graphml_path,
+                output_root=analysis_output_root,
+            )
+            print(f"Analysis report saved to {analysis_output}")
 
     names_file = NPY_DIR / "backbone_data_names.txt"
     with names_file.open("w", encoding="utf-8") as file_obj:
