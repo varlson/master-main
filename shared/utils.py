@@ -469,8 +469,11 @@ def load_graphml_backbone(filepath: Path) -> np.ndarray:
 
 
 
-def dataset_backbone_combinations(methods =["disp_fil", "nois_corr"], alpha = 0.1, percentile = 0.30 ):
-    cuts = [f"alpah_filter{str(alpha).replace('.', '_')}", f"percen_filter{str(percentile).replace('.', '_')}"]
+def alpha_cut_name(alpha: float = 0.1) -> str:
+    return f"alpah_filter{str(alpha).replace('.', '_')}"
+
+
+def dataset_backbone_combinations(methods =["disp_fil", "nois_corr"], alpha = 0.1, percentile = None ):
+    cuts = [alpha_cut_name(alpha)]
     combinations = list(itertools.product(methods, cuts))
     return combinations
-
