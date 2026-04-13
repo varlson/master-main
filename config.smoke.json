@@ -5,7 +5,7 @@
   "original_npy_dir": "data/npy",
   "backbone_npy_dir": "data/npy",
   "results_dir": "results",
-  "device": "cpu",
+  "device": "cuda",
   "seq_len": 12,
   "horizon": 12,
   "batch_size": 64,

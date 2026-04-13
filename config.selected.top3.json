@@ -1,7 +1,7 @@
 {
   "experiment": "original",
   "pipeline_mode": "selected",
-  "selected_configs_file": "results/original/json/all-datasets_08_04_2026-00h_18-epoch_2_best_configs.json",
+  "selected_configs_file": "results/old-original/json/all-datasets_08_04_2026-00h_18-epoch_2_best_configs.json",
   "dataset_names": ["pems-bay", "metr-la"],
   "original_npy_dir": "data/npy",
   "backbone_npy_dir": "data/npy",

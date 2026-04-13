@@ -1,0 +1,5 @@
+dataset,graph_name,strategy,auc_lcc_mean,auc_lcc_std,auc_efficiency_mean,auc_efficiency_std
+pems-bay,pems-bay,random,0.4320153846153847,0.011282097902001608,0.6545662739979148,0.03490285471100416
+pems-bay,pems-bay,targeted_degree,0.2686923076923078,,0.27145645590492495,
+pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_1,random,0.030943396226415093,0.003381051586343549,1.2072928636909626,1.6552049739335495
+pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_1,targeted_degree,0.020754716981132074,,0.07459181605773009,

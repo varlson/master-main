@@ -192,8 +192,12 @@ class STICformer(nn.Module):
     def fit(self, train_loader, val_loader=None):
         best_val_loss = float("inf")
         patience_counter = 0
-        best_model_path = Path(getattr(self, "best_model_path", "best_model_sticformer.pth"))
-        best_model_path.parent.mkdir(parents=True, exist_ok=True)
+        save_best_model = bool(getattr(self, "save_best_model", True))
+        best_state_dict = None
+        best_model_path = None
+        if save_best_model:
+            best_model_path = Path(getattr(self, "best_model_path", "best_model_sticformer.pth"))
+            best_model_path.parent.mkdir(parents=True, exist_ok=True)
         self.train_losses = []
         self.val_losses = []
 
@@ -226,7 +230,13 @@ class STICformer(nn.Module):
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     patience_counter = 0
-                    torch.save(self.state_dict(), str(best_model_path))
+                    if save_best_model and best_model_path is not None:
+                        torch.save(self.state_dict(), str(best_model_path))
+                    else:
+                        best_state_dict = {
+                            key: value.detach().cpu().clone()
+                            for key, value in self.state_dict().items()
+                        }
                 else:
                     patience_counter += 1
 
@@ -235,10 +245,13 @@ class STICformer(nn.Module):
                     break
 
         if val_loader:
-            try:
-                self.load_state_dict(torch.load(str(best_model_path), map_location=self.device))
-            except FileNotFoundError:
-                pass
+            if save_best_model and best_model_path is not None:
+                try:
+                    self.load_state_dict(torch.load(str(best_model_path), map_location=self.device))
+                except FileNotFoundError:
+                    pass
+            elif best_state_dict is not None:
+                self.load_state_dict(best_state_dict)
 
     def evaluate(self, loader):
         self.eval()

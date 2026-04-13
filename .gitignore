@@ -3,3 +3,4 @@ data
 .vscode
 *.log   
 **/__pycache__/
+resultsbysimplemain

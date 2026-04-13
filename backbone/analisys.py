@@ -287,6 +287,20 @@ def _float_text(value, precision: int = 4) -> str:
     return f"{float(value):.{precision}f}"
 
 
+def _signed_float_text(value, precision: int = 4, suffix: str = "") -> str:
+    if value is None or pd.isna(value):
+        return "nan"
+    number = float(value)
+    sign = "+" if number > 0 else ""
+    return f"{sign}{number:.{precision}f}{suffix}"
+
+
+def _int_text(value) -> str:
+    if value is None or pd.isna(value):
+        return "nan"
+    return str(int(value))
+
+
 def _infer_findings(row: pd.Series) -> list[str]:
     findings: list[str] = []
     edge_reduction = row.get("edge_reduction_pct", float("nan"))
@@ -570,12 +584,21 @@ def _write_report(
             dataset = section["dataset"]
             original = section["original_summary"]
             comparisons = section["comparison_df"]
+            summary_df = section["summary_df"]
+            robustness_summary = section["robustness_summary"]
+            summary_by_name = {
+                str(row["graph_name"]): row for _, row in summary_df.iterrows()
+            }
 
             file_obj.write(f"## Dataset: {dataset}\n\n")
             file_obj.write("### Rede Original\n\n")
             file_obj.write(
                 f"- Nos: {int(original['num_nodes'])} | Arestas: {int(original['num_edges'])} | "
                 f"Densidade: {_float_text(original['density'])}\n"
+            )
+            file_obj.write(
+                f"- Grau medio: {_float_text(original['average_degree'])} | "
+                f"Forca media: {_float_text(original['average_strength'])}\n"
             )
             file_obj.write(
                 f"- Clustering medio: {_float_text(original['average_clustering'])} | "
@@ -587,6 +610,11 @@ def _write_report(
                 f"Componentes: {int(original['num_connected_components'])} | "
                 f"Assortatividade: {_float_text(original['degree_assortativity'])}\n\n"
             )
+            file_obj.write(
+                f"- Comunidades: {int(original['num_communities'])} | "
+                f"Maior comunidade: {int(original['largest_community_size'])} | "
+                f"Razao do componente gigante: {_float_text(original['giant_component_ratio'])}\n\n"
+            )
 
             if comparisons.empty:
                 file_obj.write("Nenhum backbone encontrado para comparacao.\n\n")
@@ -594,28 +622,83 @@ def _write_report(
 
             file_obj.write("### Comparacoes com a Rede Original\n\n")
             for _, row in comparisons.iterrows():
-                file_obj.write(f"#### {row['backbone_graph']}\n\n")
-                file_obj.write(
-                    f"- Reducao de arestas: {_float_text(row['edge_reduction_pct'], 2)}%\n"
-                )
-                file_obj.write(
-                    f"- Delta de densidade: {_float_text(row['density_delta_pct'], 2)}%\n"
-                )
-                file_obj.write(
-                    f"- Delta de clustering medio: {_float_text(row['average_clustering_delta_pct'], 2)}%\n"
-                )
-                file_obj.write(
-                    f"- Delta de caminho medio: {_float_text(row['avg_path_length_delta_pct'], 2)}%\n"
-                )
-                file_obj.write(
-                    f"- Delta de modularidade: {_float_text(row['modularity_delta'])}\n"
-                )
+                backbone_name = str(row["backbone_graph"])
+                backbone_summary = summary_by_name.get(backbone_name)
+
+                file_obj.write(f"#### {backbone_name}\n\n")
+                if backbone_summary is not None:
+                    file_obj.write("Informacoes basicas do backbone:\n")
+                    file_obj.write(
+                        f"- Nos: {_int_text(backbone_summary['num_nodes'])} | "
+                        f"Delta: {_signed_float_text(row['node_reduction_pct'] * -1.0, 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Arestas: {_int_text(backbone_summary['num_edges'])} | "
+                        f"Delta: {_signed_float_text(row['edge_reduction_pct'] * -1.0, 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Densidade: {_float_text(backbone_summary['density'])} | "
+                        f"Delta: {_signed_float_text(row['density_delta_pct'], 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Grau medio: {_float_text(backbone_summary['average_degree'])} | "
+                        f"Forca media: {_float_text(backbone_summary['average_strength'])}\n"
+                    )
+                    file_obj.write(
+                        f"- Componentes: {_int_text(backbone_summary['num_connected_components'])} | "
+                        f"Razao do componente gigante: {_float_text(backbone_summary['giant_component_ratio'])} | "
+                        f"Delta GCC: {_signed_float_text(row['giant_component_ratio_delta_pct'], 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Clustering medio: {_float_text(backbone_summary['average_clustering'])} | "
+                        f"Delta: {_signed_float_text(row['average_clustering_delta_pct'], 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Eficiencia global: {_float_text(backbone_summary['global_efficiency'])} | "
+                        f"Delta: {_signed_float_text(row['global_efficiency_delta_pct'], 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Caminho medio (gcc): {_float_text(backbone_summary['avg_path_length_gcc'])} | "
+                        f"Delta: {_signed_float_text(row['avg_path_length_delta_pct'], 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Modularidade: {_float_text(backbone_summary['modularity'])} | "
+                        f"Delta: {_signed_float_text(row['modularity_delta'])}\n"
+                    )
+                    file_obj.write(
+                        f"- Assortatividade: {_float_text(backbone_summary['degree_assortativity'])} | "
+                        f"Delta: {_signed_float_text(row['assortativity_delta'])}\n"
+                    )
+                    file_obj.write(
+                        f"- Comunidades: {_int_text(backbone_summary['num_communities'])} | "
+                        f"Maior comunidade: {_int_text(backbone_summary['largest_community_size'])}\n"
+                    )
+
+                    random_auc = _robustness_lookup(
+                        robustness_summary, backbone_name, "random", "auc_lcc_mean"
+                    )
+                    targeted_auc = _robustness_lookup(
+                        robustness_summary, backbone_name, "targeted_degree", "auc_lcc_mean"
+                    )
+                    file_obj.write(
+                        f"- Robustez aleatoria (AUC LCC): {_float_text(random_auc)} | "
+                        f"Delta: {_signed_float_text(row['random_auc_lcc_delta_pct'], 2, '%')}\n"
+                    )
+                    file_obj.write(
+                        f"- Robustez alvo (AUC LCC): {_float_text(targeted_auc)} | "
+                        f"Delta: {_signed_float_text(row['targeted_auc_lcc_delta_pct'], 2, '%')}\n"
+                    )
+
+                file_obj.write("\nComparacao direta com a rede original:\n")
                 file_obj.write(
                     f"- Correlacao media das centralidades: {_float_text(row['mean_centrality_spearman'])}\n"
                 )
                 file_obj.write(
-                    f"- Delta de robustez alvo (AUC do componente gigante): "
-                    f"{_float_text(row['targeted_auc_lcc_delta_pct'], 2)}%\n"
+                    f"- Menor correlacao de centralidade entre as metricas: "
+                    f"{_float_text(row['min_centrality_spearman'])}\n"
+                )
+                file_obj.write(
+                    f"- Overlap medio top-k: {_float_text(row['mean_topk_overlap'])}\n"
                 )
                 file_obj.write("- Leitura interpretativa:\n")
                 for finding in _infer_findings(row):
@@ -784,48 +867,82 @@ def _analyze_group(
                 "dataset": dataset,
                 "original_graph": original_result.name,
                 "backbone_graph": result.name,
+                "original_num_nodes": original_result.summary["num_nodes"],
+                "backbone_num_nodes": result.summary["num_nodes"],
                 "node_reduction_pct": (
                     1.0
                     - (result.summary["num_nodes"] / max(original_result.summary["num_nodes"], 1))
                 )
                 * 100.0,
+                "original_num_edges": original_result.summary["num_edges"],
+                "backbone_num_edges": result.summary["num_edges"],
                 "edge_reduction_pct": (
                     1.0
                     - (result.summary["num_edges"] / max(original_result.summary["num_edges"], 1))
                 )
                 * 100.0,
+                "original_density": original_result.summary["density"],
+                "backbone_density": result.summary["density"],
                 "density_delta_pct": _pct_delta(
                     result.summary["density"], original_result.summary["density"]
                 ),
+                "original_average_degree": original_result.summary["average_degree"],
+                "backbone_average_degree": result.summary["average_degree"],
+                "original_average_strength": original_result.summary["average_strength"],
+                "backbone_average_strength": result.summary["average_strength"],
+                "original_average_clustering": original_result.summary["average_clustering"],
+                "backbone_average_clustering": result.summary["average_clustering"],
                 "average_clustering_delta_pct": _pct_delta(
                     result.summary["average_clustering"],
                     original_result.summary["average_clustering"],
                 ),
+                "original_local_efficiency_mean": original_result.summary["local_efficiency_mean"],
+                "backbone_local_efficiency_mean": result.summary["local_efficiency_mean"],
                 "local_efficiency_delta_pct": _pct_delta(
                     result.summary["local_efficiency_mean"],
                     original_result.summary["local_efficiency_mean"],
                 ),
+                "original_avg_path_length_gcc": original_result.summary["avg_path_length_gcc"],
+                "backbone_avg_path_length_gcc": result.summary["avg_path_length_gcc"],
                 "avg_path_length_delta_pct": _pct_delta(
                     result.summary["avg_path_length_gcc"],
                     original_result.summary["avg_path_length_gcc"],
                 ),
+                "original_global_efficiency": original_result.summary["global_efficiency"],
+                "backbone_global_efficiency": result.summary["global_efficiency"],
                 "global_efficiency_delta_pct": _pct_delta(
                     result.summary["global_efficiency"],
                     original_result.summary["global_efficiency"],
                 ),
+                "original_num_connected_components": original_result.summary["num_connected_components"],
+                "backbone_num_connected_components": result.summary["num_connected_components"],
+                "original_giant_component_ratio": original_result.summary["giant_component_ratio"],
+                "backbone_giant_component_ratio": result.summary["giant_component_ratio"],
                 "giant_component_ratio_delta_pct": _pct_delta(
                     result.summary["giant_component_ratio"],
                     original_result.summary["giant_component_ratio"],
                 ),
+                "original_modularity": original_result.summary["modularity"],
+                "backbone_modularity": result.summary["modularity"],
                 "modularity_delta": result.summary["modularity"] - original_result.summary["modularity"],
+                "original_assortativity": original_result.summary["degree_assortativity"],
+                "backbone_assortativity": result.summary["degree_assortativity"],
                 "assortativity_delta": (
                     result.summary["degree_assortativity"]
                     - original_result.summary["degree_assortativity"]
                 ),
+                "original_num_communities": original_result.summary["num_communities"],
+                "backbone_num_communities": result.summary["num_communities"],
+                "original_largest_community_size": original_result.summary["largest_community_size"],
+                "backbone_largest_community_size": result.summary["largest_community_size"],
                 "mean_centrality_spearman": float(correlation_df["spearman_corr"].mean()),
                 "min_centrality_spearman": float(correlation_df["spearman_corr"].min()),
                 "mean_topk_overlap": float(overlap_df["overlap_ratio"].mean()),
+                "random_auc_lcc_original": original_random_auc,
+                "random_auc_lcc_backbone": random_auc,
                 "random_auc_lcc_delta_pct": _pct_delta(random_auc, original_random_auc),
+                "targeted_auc_lcc_original": original_targeted_auc,
+                "targeted_auc_lcc_backbone": targeted_auc,
                 "targeted_auc_lcc_delta_pct": _pct_delta(targeted_auc, original_targeted_auc),
             }
         )

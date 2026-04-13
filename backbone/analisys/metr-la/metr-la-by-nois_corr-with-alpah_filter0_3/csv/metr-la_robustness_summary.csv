@@ -1,0 +1,5 @@
+dataset,graph_name,strategy,auc_lcc_mean,auc_lcc_std,auc_efficiency_mean,auc_efficiency_std
+metr-la,metr-la,random,0.4558212560386473,0.01381509721142895,0.7233153746192402,0.03650405509531177
+metr-la,metr-la,targeted_degree,0.38768115942028997,,0.43828831742621865,
+metr-la,metr-la-by-nois_corr-with-alpah_filter0_3,random,0.43632850241545895,0.022473491336156268,0.6679362888323539,0.03808650093633818
+metr-la,metr-la-by-nois_corr-with-alpah_filter0_3,targeted_degree,0.35531400966183585,,0.38202946044118047,

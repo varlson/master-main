@@ -224,8 +224,12 @@ class GraphWaveNet(nn.Module):
         patience_counter = 0
         self.train_losses = []
         self.val_losses = []
-        best_model_path = Path(getattr(self, "best_model_path", "best_model.pth"))
-        best_model_path.parent.mkdir(parents=True, exist_ok=True)
+        save_best_model = bool(getattr(self, "save_best_model", True))
+        best_state_dict = None
+        best_model_path = None
+        if save_best_model:
+            best_model_path = Path(getattr(self, "best_model_path", "best_model.pth"))
+            best_model_path.parent.mkdir(parents=True, exist_ok=True)
         
         for epoch in range(self.epochs):
             epoch_loss = 0.0
@@ -257,7 +261,13 @@ class GraphWaveNet(nn.Module):
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     patience_counter = 0
-                    torch.save(self.state_dict(), str(best_model_path))
+                    if save_best_model and best_model_path is not None:
+                        torch.save(self.state_dict(), str(best_model_path))
+                    else:
+                        best_state_dict = {
+                            key: value.detach().cpu().clone()
+                            for key, value in self.state_dict().items()
+                        }
                 else:
                     patience_counter += 1
                 
@@ -266,7 +276,10 @@ class GraphWaveNet(nn.Module):
                     break
         
         if val_loader:
-            self.load_state_dict(torch.load(str(best_model_path), map_location=self.device))
+            if save_best_model and best_model_path is not None:
+                self.load_state_dict(torch.load(str(best_model_path), map_location=self.device))
+            elif best_state_dict is not None:
+                self.load_state_dict(best_state_dict)
     
     def evaluate(self, loader):
         self.eval()
