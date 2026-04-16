@@ -1,4 +1,0 @@
-graph_name,dataset,role,source,target,path_length
-metr-la-by-disp_fil-with-alpah_filter0_1,metr-la,backbone,13,58,2
-metr-la-by-disp_fil-with-alpah_filter0_1,metr-la,backbone,114,58,1
-metr-la-by-disp_fil-with-alpah_filter0_1,metr-la,backbone,114,13,1

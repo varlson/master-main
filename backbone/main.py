@@ -162,7 +162,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--methods",
         nargs="+",
         choices=["disp_fil", "nois_corr", "high_sal"],
-        default=["disp_fil", "nois_corr"],
+        default=["disp_fil", "nois_corr", "high_sal"],
         help="Metodos de backbone a executar.",
     )
     parser.add_argument(

@@ -1,0 +1,6 @@
+dataset,original_graph,backbone_graph,metric,k,overlap_size,overlap_ratio
+pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_4,degree_centrality,20,6,0.3
+pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_4,betweenness_centrality,20,8,0.4
+pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_4,closeness_centrality,20,15,0.75
+pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_4,eigenvector_centrality,20,20,1.0
+pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_4,pagerank,20,10,0.5

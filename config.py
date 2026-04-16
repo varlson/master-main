@@ -20,7 +20,7 @@ RESULTS_DIR = BASE_DIR / "results"
 MLFLOW_DIR = BASE_DIR / "mlruns"
 PERCENTILE = 0.30
 MIN_DEGREE  = 1
-ALPHA = 0.3
+ALPHA = 0.4
 
 # Criar diretórios se não existirem
 for dir_path in [DATA_DIR, H5_DIR, PKL_DIR, GRAPHML_DIR, RESULTS_DIR, MLFLOW_DIR]:

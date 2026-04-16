@@ -1,8 +1,0 @@
-graph_name,dataset,role,source,target,weight,edge_overlap
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,16,50,0.9956002831459045,0.0
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,26,82,0.9949106574058533,0.0
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,34,237,0.9936038851737976,0.0
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,74,83,0.9938262104988098,0.0
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,99,149,0.9992882609367371,0.0
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,142,257,0.999024510383606,0.0
-pems-bay-by-disp_fil-with-alpah_filter0_1,pems-bay,backbone,184,185,0.9999862909317017,0.0

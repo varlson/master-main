@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 import json
 from pathlib import Path
+import random
 from typing import Any
 
 import numpy as np
@@ -22,7 +23,7 @@ from shared.metrics import (
     prefix_metrics,
     summarize_metric_dicts,
 )
-from shared.reproducibility import parse_seeds, set_global_seed
+from shared.reproducibility import parse_seeds
 from shared.resultSumarization import (
     consolidate_experiment_results,
     create_comparison_report,
@@ -94,6 +95,16 @@ def _parse_dataset_names(raw_value: Any) -> list[str]:
     raise ValueError(f"Lista de datasets invalida: {raw_value!r}")
 
 
+def _resolve_single_seed(raw_value: Any) -> list[int]:
+    parsed_seeds = parse_seeds(raw_value)
+    if len(parsed_seeds) > 1:
+        print(
+            "Pipeline simples em modo rapido: usando apenas a primeira seed "
+            f"({parsed_seeds[0]}) e ignorando as demais {parsed_seeds[1:]}."
+        )
+    return [parsed_seeds[0]]
+
+
 def _resolve_device(requested_device: Any) -> str:
     requested = str(requested_device or "").strip().lower()
     if not requested:
@@ -104,6 +115,21 @@ def _resolve_device(requested_device: Any) -> str:
         return "cpu"
 
     return requested
+
+
+def _set_fast_single_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    if hasattr(torch.backends, "cudnn"):
+        # Mantem inicializacao consistente por seed, mas privilegia throughput.
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True
 
 
 def load_simple_config(config_file: Path, params_file: Path) -> SimpleConfig:
@@ -139,7 +165,7 @@ def load_simple_config(config_file: Path, params_file: Path) -> SimpleConfig:
         horizon=int(payload.get("horizon", 12)),
         batch_size=int(payload.get("batch_size", 64)),
         epochs=int(payload.get("epochs", 5)),
-        seeds=parse_seeds(payload.get("seeds", [42])),
+        seeds=_resolve_single_seed(payload.get("seed", payload.get("seeds", [42]))),
         train_ratio=train_ratio,
         val_ratio=val_ratio,
         test_ratio=test_ratio,
@@ -422,7 +448,7 @@ def run_model_experiment(
     print(f"{'#' * 90}")
 
     for seed in config.seeds:
-        set_global_seed(seed)
+        _set_fast_single_seed(seed)
         run_name = f"{experiment_name}_final_seed{seed}"
 
         model = _instantiate_model(
@@ -617,7 +643,7 @@ def run_dataset_pipeline(
             test_ratio=config.test_ratio,
             normalize=config.normalize,
             normalization_method=config.normalization_method,
-            num_workers=0,
+            num_workers=4,
             pin_memory=config.device == "cuda",
         )
     )
@@ -700,7 +726,7 @@ def main() -> None:
     print(f"- DATASETS: {config.dataset_names}")
     print(f"- DEVICE: {config.device}")
     print(f"- RESULTS_DIR: {config.results_dir}")
-    print(f"- SEEDS: {config.seeds}")
+    print(f"- SEEDS: {config.seeds} (single-seed fast mode)")
     print(f"- RUN_LABEL: {config.run_label}")
     print(f"- MODELS: {list(SUPPORTED_MODELS)}")
 

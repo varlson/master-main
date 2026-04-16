@@ -1,6 +1,0 @@
-dataset,original_graph,backbone_graph,metric,k,overlap_size,overlap_ratio
-metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,degree_centrality,20,1,0.05
-metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,betweenness_centrality,20,10,0.5
-metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,closeness_centrality,20,10,0.5
-metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,eigenvector_centrality,20,0,0.0
-metr-la,metr-la,metr-la-by-nois_corr-with-alpah_filter0_1,pagerank,20,3,0.15
