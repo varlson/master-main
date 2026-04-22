@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_pems-bay_STICformer_22_04_2026-09h_29-epoch_1_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 1,
+    "train_loss_last": 0.2549239338490001,
+    "val_loss_normalized": 0.268767239685896,
+    "val_mae": 2.326692819595337,
+    "val_rmse": 4.872758865356445,
+    "val_mape": 133633.875,
+    "val_smape": 4.789651393890381,
+    "val_wape": 3.7463951110839844,
+    "test_loss_normalized": 0.2241003549846312,
+    "test_mae": 2.1476635932922363,
+    "test_rmse": 4.473166465759277,
+    "test_mape": 111547.6328125,
+    "test_smape": 4.305769920349121,
+    "test_wape": 3.438389778137207
+  }
+]

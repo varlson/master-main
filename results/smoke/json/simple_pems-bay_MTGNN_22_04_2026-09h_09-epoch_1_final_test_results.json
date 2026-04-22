@@ -1,0 +1,34 @@
+[
+  {
+    "run_name": "simple_pems-bay_MTGNN_22_04_2026-09h_09-epoch_1_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 1,
+    "train_loss_last": 0.27603919707369384,
+    "val_loss_normalized": 0.32519573938646695,
+    "val_mae": 2.4594991207122803,
+    "val_rmse": 5.340156078338623,
+    "val_mape": 133971.140625,
+    "val_smape": 5.139338493347168,
+    "val_wape": 3.9602372646331787,
+    "test_loss_normalized": 0.2639410498272056,
+    "test_mae": 2.2402381896972656,
+    "test_rmse": 4.85331392288208,
+    "test_mape": 112014.2734375,
+    "test_smape": 4.560877799987793,
+    "test_wape": 3.5866003036499023
+  }
+]

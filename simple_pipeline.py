@@ -32,13 +32,20 @@ from shared.visualization import generate_model_diagnostics
 
 
 SUPPORTED_MODELS = ("GraphWaveNet", "MTGNN", "STICformer")
+SUPPORTED_BACKBONE_METHODS = ("disp_fil", "nois_corr", "high_sal")
 
 
 @dataclass(frozen=True)
 class SimpleConfig:
     config_file: Path
     params_file: Path
+    experiment: str
+    run_original: bool
+    run_backbone: bool
     dataset_names: list[str]
+    backbone_dataset_names: list[str]
+    backbone_methods: list[str]
+    backbone_alpha: float
     data_dir: Path
     results_dir: Path
     device: str
@@ -95,6 +102,85 @@ def _parse_dataset_names(raw_value: Any) -> list[str]:
     raise ValueError(f"Lista de datasets invalida: {raw_value!r}")
 
 
+def _parse_name_list(raw_value: Any, *, default: list[str] | tuple[str, ...]) -> list[str]:
+    if raw_value is None:
+        return list(default)
+
+    if isinstance(raw_value, str):
+        names = [item.strip() for item in raw_value.split(",") if item.strip()]
+        return names or list(default)
+
+    if isinstance(raw_value, list):
+        names = [str(item).strip() for item in raw_value if str(item).strip()]
+        return names or list(default)
+
+    raise ValueError(f"Lista de nomes invalida: {raw_value!r}")
+
+
+def _alpha_cut_name(alpha: float) -> str:
+    # Mantem o typo historico usado pelos artefatos ja gerados: "alpah_filter".
+    return f"alpah_filter{str(alpha).replace('.', '_')}"
+
+
+def _backbone_dataset_name(dataset_name: str, method: str, alpha: float) -> str:
+    return f"{dataset_name}-by-{method}-with-{_alpha_cut_name(alpha)}"
+
+
+def _infer_base_dataset_name(dataset_name: str) -> str | None:
+    if dataset_name == "metr-la" or dataset_name.startswith("metr-la-"):
+        return "metr-la"
+    if dataset_name == "pems-bay" or dataset_name.startswith("pems-bay-"):
+        return "pems-bay"
+    return None
+
+
+def _method_matches_backbone_name(backbone_name: str, methods: list[str]) -> bool:
+    return any(f"-by-{method}-with-" in backbone_name for method in methods)
+
+
+def _read_backbone_names_file(data_dir: Path) -> list[str]:
+    names_file = data_dir / "backbone_data_names.txt"
+    if not names_file.exists():
+        return []
+
+    with names_file.open("r", encoding="utf-8") as file:
+        return [line.strip() for line in file if line.strip()]
+
+
+def _resolve_backbone_dataset_names(
+    *,
+    raw_value: Any,
+    dataset_names: list[str],
+    data_dir: Path,
+    methods: list[str],
+    alpha: float,
+    force_generate: bool,
+) -> list[str]:
+    explicit_names = _parse_name_list(raw_value, default=[])
+    if explicit_names:
+        return explicit_names
+
+    if not force_generate:
+        discovered_names = []
+        for dataset_name in dataset_names:
+            prefix = f"{dataset_name}-by-"
+            for backbone_name in _read_backbone_names_file(data_dir):
+                if backbone_name.startswith(prefix) and _method_matches_backbone_name(
+                    backbone_name, methods
+                ):
+                    discovered_names.append(backbone_name)
+
+        if discovered_names:
+            return list(dict.fromkeys(discovered_names))
+
+    generated_names = [
+        _backbone_dataset_name(dataset_name, method, alpha)
+        for dataset_name in dataset_names
+        for method in methods
+    ]
+    return list(dict.fromkeys(generated_names))
+
+
 def _resolve_single_seed(raw_value: Any) -> list[int]:
     parsed_seeds = parse_seeds(raw_value)
     if len(parsed_seeds) > 1:
@@ -136,6 +222,31 @@ def load_simple_config(config_file: Path, params_file: Path) -> SimpleConfig:
     payload = _load_json_object(config_file)
     base_dir = config_file.parent
 
+    experiment = str(payload.get("experiment", "original")).strip().lower()
+    if experiment not in {"original", "backbone", "both"}:
+        raise ValueError("experiment invalido. Use 'original', 'backbone' ou 'both'.")
+
+    dataset_names = _parse_dataset_names(payload.get("dataset_names"))
+    data_dir = _resolve_path(payload.get("data_dir"), base_dir=base_dir, default="data/npy")
+    backbone_methods = _parse_name_list(
+        payload.get("backbone_methods"),
+        default=SUPPORTED_BACKBONE_METHODS,
+    )
+    invalid_methods = sorted(set(backbone_methods) - set(SUPPORTED_BACKBONE_METHODS))
+    if invalid_methods:
+        raise ValueError(f"Metodos de backbone nao suportados: {invalid_methods}")
+
+    alpha_was_provided = "backbone_alpha" in payload or "alpha" in payload
+    backbone_alpha = float(payload.get("backbone_alpha", payload.get("alpha", 0.4)))
+    backbone_dataset_names = _resolve_backbone_dataset_names(
+        raw_value=payload.get("backbone_dataset_names"),
+        dataset_names=dataset_names,
+        data_dir=data_dir,
+        methods=backbone_methods,
+        alpha=backbone_alpha,
+        force_generate=alpha_was_provided,
+    )
+
     train_ratio = float(payload.get("train_ratio", 0.7))
     val_ratio = float(payload.get("val_ratio", 0.1))
     test_ratio = float(payload.get("test_ratio", 0.2))
@@ -153,8 +264,14 @@ def load_simple_config(config_file: Path, params_file: Path) -> SimpleConfig:
     return SimpleConfig(
         config_file=config_file.resolve(),
         params_file=params_file.resolve(),
-        dataset_names=_parse_dataset_names(payload.get("dataset_names")),
-        data_dir=_resolve_path(payload.get("data_dir"), base_dir=base_dir, default="data/npy"),
+        experiment=experiment,
+        run_original=experiment in {"original", "both"},
+        run_backbone=experiment in {"backbone", "both"},
+        dataset_names=dataset_names,
+        backbone_dataset_names=backbone_dataset_names,
+        backbone_methods=backbone_methods,
+        backbone_alpha=backbone_alpha,
+        data_dir=data_dir,
         results_dir=_resolve_path(
             payload.get("results_dir"),
             base_dir=base_dir,
@@ -235,15 +352,23 @@ def available_datasets(data_dir: Path) -> list[str]:
         dataset = file.name.replace("-h5.npy", "")
         if (data_dir / f"{dataset}-adj_mx.npy").exists():
             datasets.append(dataset)
+
+    for file in data_dir.glob("*-adj_mx.npy"):
+        dataset = file.name.replace("-adj_mx.npy", "")
+        base_dataset_name = _infer_base_dataset_name(dataset)
+        has_dataset_h5 = (data_dir / f"{dataset}-h5.npy").exists()
+        has_base_h5 = (
+            base_dataset_name is not None
+            and (data_dir / f"{base_dataset_name}-h5.npy").exists()
+        )
+        if has_dataset_h5 or has_base_h5:
+            datasets.append(dataset)
+
     return sorted(set(datasets))
 
 
 def resolve_dataset_paths(dataset_name: str, data_dir: Path) -> tuple[Path, Path]:
-    base_dataset_name = None
-    if "metr-la" in dataset_name:
-        base_dataset_name = "metr-la"
-    elif "pems-bay" in dataset_name:
-        base_dataset_name = "pems-bay"
+    base_dataset_name = _infer_base_dataset_name(dataset_name)
 
     data_path = data_dir / f"{dataset_name}-h5.npy"
     adj_path = data_dir / f"{dataset_name}-adj_mx.npy"
@@ -429,6 +554,7 @@ def _build_final_summary(
 def run_model_experiment(
     *,
     dataset_name: str,
+    experiment_type: str,
     model_name: str,
     params: dict[str, Any],
     train_loader,
@@ -439,7 +565,8 @@ def run_model_experiment(
     normalization_stats: dict[str, Any],
     config: SimpleConfig,
 ) -> dict[str, Any]:
-    experiment_name = f"simple_{dataset_name}_{model_name}_{config.run_label}"
+    experiment_prefix = "simple" if experiment_type == "original" else f"simple_{experiment_type}"
+    experiment_name = f"{experiment_prefix}_{dataset_name}_{model_name}_{config.run_label}"
     seed_results: list[dict[str, Any]] = []
 
     print(f"\n{'#' * 90}")
@@ -566,6 +693,8 @@ def run_model_experiment(
         "final_summary": final_summary,
         "metadata": {
             "pipeline": "simple_pipeline",
+            "experiment_type": experiment_type,
+            "base_dataset": _infer_base_dataset_name(dataset_name) or dataset_name,
             "device": config.device,
             "run_label": config.run_label,
             "selection_metric": config.selection_metric,
@@ -614,10 +743,12 @@ def consolidate_outputs(
 def run_dataset_pipeline(
     *,
     dataset_name: str,
+    experiment_type: str,
     config: SimpleConfig,
     params_by_model: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     print(f"\n{'=' * 100}")
+    print(f"Tipo de experimento: {experiment_type}")
     print(f"Dataset selecionado: {dataset_name}")
     print(f"Diretorio de dados: {config.data_dir}")
     print(f"Diretorio de resultados: {config.results_dir}")
@@ -627,6 +758,12 @@ def run_dataset_pipeline(
     data_path, adj_path = resolve_dataset_paths(dataset_name, config.data_dir)
     print(f"Arquivo de serie temporal: {data_path}")
     print(f"Arquivo de adjacencia: {adj_path}")
+    expected_dataset_data = config.data_dir / f"{dataset_name}-h5.npy"
+    if data_path != expected_dataset_data:
+        print(
+            "Serie temporal especifica do backbone nao encontrada; "
+            f"usando serie temporal base: {data_path.name}"
+        )
 
     data = np.load(data_path)
     adj = np.load(adj_path)
@@ -653,6 +790,7 @@ def run_dataset_pipeline(
         try:
             experiment_result = run_model_experiment(
                 dataset_name=dataset_name,
+                experiment_type=experiment_type,
                 model_name=model_name,
                 params=params_by_model[model_name],
                 train_loader=train_loader,
@@ -694,6 +832,47 @@ def _save_run_metadata(
     print(f"🧾 Metadata da execucao salva em: {metadata_path}")
 
 
+def _global_output_scope(*, experiment_type: str, config: SimpleConfig) -> str:
+    if experiment_type == "original" and not config.run_backbone:
+        return "all-datasets"
+    return f"{experiment_type}_all-datasets"
+
+
+def run_experiment_group(
+    *,
+    experiment_type: str,
+    dataset_names: list[str],
+    config: SimpleConfig,
+    params_by_model: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    print(f"\n{'=' * 100}")
+    print(f"Iniciando grupo simples: {experiment_type}")
+    print(f"Datasets: {dataset_names}")
+    print(f"{'=' * 100}")
+
+    all_experiments: list[dict[str, Any]] = []
+    for dataset_name in dataset_names:
+        dataset_results = run_dataset_pipeline(
+            dataset_name=dataset_name,
+            experiment_type=experiment_type,
+            config=config,
+            params_by_model=params_by_model,
+        )
+        all_experiments.extend(dataset_results)
+
+    if len(dataset_names) > 1 and all_experiments:
+        consolidate_outputs(
+            experiments_data=all_experiments,
+            output_scope=_global_output_scope(
+                experiment_type=experiment_type,
+                config=config,
+            ),
+            config=config,
+        )
+
+    return all_experiments
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Pipeline simples para 3 modelos de forecasting.")
     parser.add_argument(
@@ -723,7 +902,12 @@ def main() -> None:
     print("Configuracao do pipeline simples:")
     print(f"- CONFIG_FILE: {config.config_file}")
     print(f"- PARAMS_FILE: {config.params_file}")
+    print(f"- EXPERIMENT: {config.experiment}")
     print(f"- DATASETS: {config.dataset_names}")
+    if config.run_backbone:
+        print(f"- BACKBONE_DATASETS: {config.backbone_dataset_names}")
+        print(f"- BACKBONE_METHODS: {config.backbone_methods}")
+        print(f"- BACKBONE_ALPHA: {config.backbone_alpha}")
     print(f"- DEVICE: {config.device}")
     print(f"- RESULTS_DIR: {config.results_dir}")
     print(f"- SEEDS: {config.seeds} (single-seed fast mode)")
@@ -731,19 +915,24 @@ def main() -> None:
     print(f"- MODELS: {list(SUPPORTED_MODELS)}")
 
     all_experiments: list[dict[str, Any]] = []
-    for dataset_name in config.dataset_names:
-        dataset_results = run_dataset_pipeline(
-            dataset_name=dataset_name,
-            config=config,
-            params_by_model=params_by_model,
+    if config.run_original:
+        all_experiments.extend(
+            run_experiment_group(
+                experiment_type="original",
+                dataset_names=config.dataset_names,
+                config=config,
+                params_by_model=params_by_model,
+            )
         )
-        all_experiments.extend(dataset_results)
 
-    if len(config.dataset_names) > 1 and all_experiments:
-        consolidate_outputs(
-            experiments_data=all_experiments,
-            output_scope="all-datasets",
-            config=config,
+    if config.run_backbone:
+        all_experiments.extend(
+            run_experiment_group(
+                experiment_type="backbone",
+                dataset_names=config.backbone_dataset_names,
+                config=config,
+                params_by_model=params_by_model,
+            )
         )
 
 

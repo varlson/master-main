@@ -1,8 +1,8 @@
 # Relatorio de Analise Estrutural de Redes e Backbones
 
-Gerado em: 2026-04-15 23:27:20
+Gerado em: 2026-04-22 14:24:11
 
-Pasta de saida: `/home/varlson/master/main/master-main/backbone/analisys/metr-la/metr-la-by-nois_corr-with-alpah_filter0_4`
+Pasta de saida: `/home/suleimane/master/main/master-main/backbone/analisys/metr-la/metr-la-by-nois_corr-with-alpah_filter0_4`
 
 ## Dataset: metr-la
 

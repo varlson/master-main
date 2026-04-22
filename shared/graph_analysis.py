@@ -634,13 +634,13 @@ def summarize_robustness(curves: pd.DataFrame) -> pd.DataFrame:
                 "strategy": strategy,
                 "trial": trial,
                 "auc_lcc": float(
-                    np.trapz(
+                    np.trapezoid (
                         ordered["largest_component_ratio"].to_numpy(),
                         ordered["fraction_removed"].to_numpy(),
                     )
                 ),
                 "auc_efficiency": float(
-                    np.trapz(
+                    np.trapezoid (
                         ordered["global_efficiency_ratio"].to_numpy(),
                         ordered["fraction_removed"].to_numpy(),
                     )

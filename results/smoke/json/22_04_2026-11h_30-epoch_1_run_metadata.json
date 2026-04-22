@@ -1,0 +1,84 @@
+{
+  "timestamp": "2026-04-22T11:30:54.662917",
+  "pipeline": "simple_pipeline",
+  "config": {
+    "config_file": "/home/suleimane/master/main/master-main/simple_config.smoke.json",
+    "params_file": "/home/suleimane/master/main/master-main/params.json",
+    "experiment": "backbone",
+    "run_original": false,
+    "run_backbone": true,
+    "dataset_names": [
+      "pems-bay",
+      "metr-la"
+    ],
+    "backbone_dataset_names": [
+      "metr-la-by-disp_fil-with-alpah_filter0_4",
+      "metr-la-by-nois_corr-with-alpah_filter0_4",
+      "metr-la-by-high_sal-with-alpah_filter0_4",
+      "pems-bay-by-disp_fil-with-alpah_filter0_4",
+      "pems-bay-by-nois_corr-with-alpah_filter0_4",
+      "pems-bay-by-high_sal-with-alpah_filter0_4"
+    ],
+    "backbone_methods": [
+      "disp_fil",
+      "nois_corr",
+      "high_sal"
+    ],
+    "backbone_alpha": 0.4,
+    "data_dir": "/home/suleimane/master/main/master-main/data/npy",
+    "results_dir": "/home/suleimane/master/main/master-main/results/smoke",
+    "device": "cuda",
+    "seq_len": 12,
+    "horizon": 12,
+    "batch_size": 32,
+    "epochs": 1,
+    "seeds": [
+      42
+    ],
+    "train_ratio": 0.7,
+    "val_ratio": 0.1,
+    "test_ratio": 0.2,
+    "normalize": true,
+    "normalization_method": "zscore",
+    "generate_plots": true,
+    "plots_num_nodes": 4,
+    "plots_max_time_points": 200,
+    "selection_metric": "val_mae",
+    "run_label": "22_04_2026-11h_30-epoch_1"
+  },
+  "params_by_model": {
+    "GraphWaveNet": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "MTGNN": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "STICformer": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    }
+  }
+}

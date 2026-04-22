@@ -2,5 +2,5 @@ dataset,original_graph,backbone_graph,metric,num_common_nodes,spearman_corr,pear
 pems-bay,pems-bay,pems-bay-by-high_sal-with-alpah_filter0_4,degree_centrality,235,0.1918385069754986,0.23816889633415889
 pems-bay,pems-bay,pems-bay-by-high_sal-with-alpah_filter0_4,betweenness_centrality,235,0.7558179347807302,0.6811193037971666
 pems-bay,pems-bay,pems-bay-by-high_sal-with-alpah_filter0_4,closeness_centrality,235,-0.038966451873924376,-0.08071039962529265
-pems-bay,pems-bay,pems-bay-by-high_sal-with-alpah_filter0_4,eigenvector_centrality,235,-0.42328867190028385,-0.038253526953615814
+pems-bay,pems-bay,pems-bay-by-high_sal-with-alpah_filter0_4,eigenvector_centrality,235,-0.28393271468428144,-0.0383170357711988
 pems-bay,pems-bay,pems-bay-by-high_sal-with-alpah_filter0_4,pagerank,235,0.13739914153659605,0.23800406794759618

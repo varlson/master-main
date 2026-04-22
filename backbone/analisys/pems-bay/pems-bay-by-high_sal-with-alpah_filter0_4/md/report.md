@@ -1,8 +1,8 @@
 # Relatorio de Analise Estrutural de Redes e Backbones
 
-Gerado em: 2026-04-15 23:28:08
+Gerado em: 2026-04-22 14:24:45
 
-Pasta de saida: `/home/varlson/master/main/master-main/backbone/analisys/pems-bay/pems-bay-by-high_sal-with-alpah_filter0_4`
+Pasta de saida: `/home/suleimane/master/main/master-main/backbone/analisys/pems-bay/pems-bay-by-high_sal-with-alpah_filter0_4`
 
 ## Dataset: pems-bay
 
@@ -35,8 +35,8 @@ Informacoes basicas do backbone:
 - Robustez alvo (AUC LCC): 0.0305 | Delta: -88.64%
 
 Comparacao direta com a rede original:
-- Correlacao media das centralidades: 0.1246
-- Menor correlacao de centralidade entre as metricas: -0.4233
+- Correlacao media das centralidades: 0.1524
+- Menor correlacao de centralidade entre as metricas: -0.2839
 - Overlap medio top-k: 0.1500
 - Leitura interpretativa:
   - removeu uma fração grande das arestas e tornou a rede bem mais esparsa

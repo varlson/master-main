@@ -1,0 +1,34 @@
+[
+  {
+    "run_name": "simple_backbone_metr-la-by-disp_fil-with-alpah_filter0_4_MTGNN_22_04_2026-11h_30-epoch_1_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 1,
+    "train_loss_last": 0.3372395567605906,
+    "val_loss_normalized": 0.33092324675939905,
+    "val_mae": 5.885924339294434,
+    "val_rmse": 11.23073673248291,
+    "val_mape": 13254190080.0,
+    "val_smape": 24.18381118774414,
+    "val_wape": 10.73286247253418,
+    "test_loss_normalized": 0.40156628369031666,
+    "test_mae": 6.822279930114746,
+    "test_rmse": 12.364770889282227,
+    "test_mape": 20325408768.0,
+    "test_smape": 35.236026763916016,
+    "test_wape": 13.445732116699219
+  }
+]

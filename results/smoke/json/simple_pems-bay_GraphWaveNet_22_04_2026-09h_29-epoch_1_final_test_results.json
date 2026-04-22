@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_pems-bay_GraphWaveNet_22_04_2026-09h_29-epoch_1_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 1,
+    "train_loss_last": 0.27243861654740675,
+    "val_loss_normalized": 0.3283497714694658,
+    "val_mae": 2.7715840339660645,
+    "val_rmse": 5.384033679962158,
+    "val_mape": 133550.28125,
+    "val_smape": 5.717261791229248,
+    "val_wape": 4.462750434875488,
+    "test_loss_normalized": 0.2745870631588109,
+    "test_mae": 2.5944159030914307,
+    "test_rmse": 4.9511895179748535,
+    "test_mape": 111242.4921875,
+    "test_smape": 5.211121082305908,
+    "test_wape": 4.153635501861572
+  }
+]

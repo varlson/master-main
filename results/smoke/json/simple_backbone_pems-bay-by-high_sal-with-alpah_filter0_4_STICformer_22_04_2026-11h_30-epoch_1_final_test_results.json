@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-high_sal-with-alpah_filter0_4_STICformer_22_04_2026-11h_30-epoch_1_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 1,
+    "train_loss_last": 0.25069681129565363,
+    "val_loss_normalized": 0.2600157362483213,
+    "val_mae": 2.1857478618621826,
+    "val_rmse": 4.744147777557373,
+    "val_mape": 50281868.0,
+    "val_smape": 4.536915302276611,
+    "val_wape": 3.510751485824585,
+    "test_loss_normalized": 0.21891535750013189,
+    "test_mae": 2.0089340209960938,
+    "test_rmse": 4.369919776916504,
+    "test_mape": 40217352.0,
+    "test_smape": 4.065810203552246,
+    "test_wape": 3.2073349952697754
+  }
+]

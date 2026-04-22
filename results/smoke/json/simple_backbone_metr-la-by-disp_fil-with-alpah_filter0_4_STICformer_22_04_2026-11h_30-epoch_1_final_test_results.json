@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_metr-la-by-disp_fil-with-alpah_filter0_4_STICformer_22_04_2026-11h_30-epoch_1_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 1,
+    "train_loss_last": 0.32430181426502197,
+    "val_loss_normalized": 0.32070775674743074,
+    "val_mae": 5.278532028198242,
+    "val_rmse": 11.056509017944336,
+    "val_mape": 11021814784.0,
+    "val_smape": 23.555715560913086,
+    "val_wape": 9.62529468536377,
+    "test_loss_normalized": 0.3832952593078959,
+    "test_mae": 5.9449262619018555,
+    "test_rmse": 12.080573081970215,
+    "test_mape": 15281351680.0,
+    "test_smape": 34.66986083984375,
+    "test_wape": 11.716593742370605
+  }
+]

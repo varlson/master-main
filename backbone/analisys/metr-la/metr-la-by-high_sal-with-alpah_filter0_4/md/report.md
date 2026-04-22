@@ -1,8 +1,8 @@
 # Relatorio de Analise Estrutural de Redes e Backbones
 
-Gerado em: 2026-04-15 23:27:26
+Gerado em: 2026-04-22 14:24:15
 
-Pasta de saida: `/home/varlson/master/main/master-main/backbone/analisys/metr-la/metr-la-by-high_sal-with-alpah_filter0_4`
+Pasta de saida: `/home/suleimane/master/main/master-main/backbone/analisys/metr-la/metr-la-by-high_sal-with-alpah_filter0_4`
 
 ## Dataset: metr-la
 
@@ -35,8 +35,8 @@ Informacoes basicas do backbone:
 - Robustez alvo (AUC LCC): 0.0304 | Delta: -92.17%
 
 Comparacao direta com a rede original:
-- Correlacao media das centralidades: 0.1519
-- Menor correlacao de centralidade entre as metricas: -0.2224
+- Correlacao media das centralidades: 0.1415
+- Menor correlacao de centralidade entre as metricas: -0.2747
 - Overlap medio top-k: 0.3000
 - Leitura interpretativa:
   - removeu uma fração grande das arestas e tornou a rede bem mais esparsa

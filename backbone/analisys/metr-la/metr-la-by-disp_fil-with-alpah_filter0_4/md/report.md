@@ -1,8 +1,8 @@
 # Relatorio de Analise Estrutural de Redes e Backbones
 
-Gerado em: 2026-04-15 23:27:11
+Gerado em: 2026-04-22 14:24:05
 
-Pasta de saida: `/home/varlson/master/main/master-main/backbone/analisys/metr-la/metr-la-by-disp_fil-with-alpah_filter0_4`
+Pasta de saida: `/home/suleimane/master/main/master-main/backbone/analisys/metr-la/metr-la-by-disp_fil-with-alpah_filter0_4`
 
 ## Dataset: metr-la
 
@@ -21,23 +21,23 @@ Pasta de saida: `/home/varlson/master/main/master-main/backbone/analisys/metr-la
 
 Informacoes basicas do backbone:
 - Nos: 207 | Delta: -0.00%
-- Arestas: 510 | Delta: -61.16%
-- Densidade: 0.0239 | Delta: -61.16%
-- Grau medio: 4.9275 | Forca media: 3.4215
-- Componentes: 10 | Razao do componente gigante: 0.9130 | Delta GCC: -8.25%
-- Clustering medio: 0.4145 | Delta: -24.42%
-- Eficiencia global: 0.1504 | Delta: -46.07%
-- Caminho medio (gcc): 8.6077 | Delta: +69.99%
-- Modularidade: 0.7826 | Delta: +0.0848
-- Assortatividade: 0.5633 | Delta: +0.1017
-- Comunidades: 21 | Maior comunidade: 33
-- Robustez aleatoria (AUC LCC): 0.2981 | Delta: -34.59%
-- Robustez alvo (AUC LCC): 0.1789 | Delta: -53.86%
+- Arestas: 585 | Delta: -55.45%
+- Densidade: 0.0274 | Delta: -55.45%
+- Grau medio: 5.6522 | Forca media: 3.7094
+- Componentes: 6 | Razao do componente gigante: 0.9420 | Delta GCC: -5.34%
+- Clustering medio: 0.4130 | Delta: -24.71%
+- Eficiencia global: 0.1722 | Delta: -38.25%
+- Caminho medio (gcc): 7.8618 | Delta: +55.26%
+- Modularidade: 0.7742 | Delta: +0.0764
+- Assortatividade: 0.5677 | Delta: +0.1061
+- Comunidades: 14 | Maior comunidade: 34
+- Robustez aleatoria (AUC LCC): 0.3372 | Delta: -26.02%
+- Robustez alvo (AUC LCC): 0.2330 | Delta: -39.91%
 
 Comparacao direta com a rede original:
-- Correlacao media das centralidades: 0.8754
-- Menor correlacao de centralidade entre as metricas: 0.7960
-- Overlap medio top-k: 0.7500
+- Correlacao media das centralidades: 0.9310
+- Menor correlacao de centralidade entre as metricas: 0.8928
+- Overlap medio top-k: 0.8100
 - Leitura interpretativa:
   - removeu uma fração grande das arestas e tornou a rede bem mais esparsa
   - reduziu fortemente a redundância local e os triângulos

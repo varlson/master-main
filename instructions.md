@@ -1,5 +1,7 @@
 ssh config file
 
+scp -r -P 5000 suleimaneducure@200.239.132.159://media/work/suleimaneducure/codes/master-main/data /home/suleimane/master/main/master-main
+
 Grid search:
 CONFIG_SOURCE=json CONFIG_FILE=config.json python3 main.py
 
