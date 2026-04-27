@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-disp_fil-with-alpah_filter0_4_STICformer_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 15,
+    "train_loss_last": 0.1869497123909624,
+    "val_loss_normalized": 0.21420630793218598,
+    "val_mae": 2.078892230987549,
+    "val_rmse": 4.352874755859375,
+    "val_mape": 134494.96875,
+    "val_smape": 4.311623573303223,
+    "val_wape": 3.3473894596099854,
+    "test_loss_normalized": 0.1897263639475122,
+    "test_mae": 1.9604531526565552,
+    "test_rmse": 4.115814208984375,
+    "test_mape": 111829.078125,
+    "test_smape": 3.9531450271606445,
+    "test_wape": 3.1386659145355225
+  }
+]

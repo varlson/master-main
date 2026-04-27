@@ -1,0 +1,34 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-disp_fil-with-alpah_filter0_4_MTGNN_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 22,
+    "train_loss_last": 0.23624701390794495,
+    "val_loss_normalized": 0.2888893761837775,
+    "val_mae": 2.361419677734375,
+    "val_rmse": 5.0543622970581055,
+    "val_mape": 134334.765625,
+    "val_smape": 4.911636829376221,
+    "val_wape": 3.8023087978363037,
+    "test_loss_normalized": 0.25169288573295245,
+    "test_mae": 2.1935274600982666,
+    "test_rmse": 4.740373611450195,
+    "test_mape": 112129.3359375,
+    "test_smape": 4.46120548248291,
+    "test_wape": 3.5118155479431152
+  }
+]

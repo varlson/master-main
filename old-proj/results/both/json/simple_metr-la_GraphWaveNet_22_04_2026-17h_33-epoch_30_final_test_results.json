@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_metr-la_GraphWaveNet_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 30,
+    "train_loss_last": 0.2879879153737716,
+    "val_loss_normalized": 0.31774675017483883,
+    "val_mae": 5.388321399688721,
+    "val_rmse": 11.005603790283203,
+    "val_mape": 11188715520.0,
+    "val_smape": 23.54511070251465,
+    "val_wape": 9.825498580932617,
+    "test_loss_normalized": 0.3798879122309317,
+    "test_mae": 6.106078624725342,
+    "test_rmse": 12.026956558227539,
+    "test_mape": 15742545920.0,
+    "test_smape": 34.6529655456543,
+    "test_wape": 12.034223556518555
+  }
+]

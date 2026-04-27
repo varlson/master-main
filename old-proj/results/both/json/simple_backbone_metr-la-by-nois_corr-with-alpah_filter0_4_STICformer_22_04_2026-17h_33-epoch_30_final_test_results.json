@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_metr-la-by-nois_corr-with-alpah_filter0_4_STICformer_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 12,
+    "train_loss_last": 0.2819834766245493,
+    "val_loss_normalized": 0.3044953107416073,
+    "val_mae": 5.129249095916748,
+    "val_rmse": 10.773576736450195,
+    "val_mape": 12179635200.0,
+    "val_smape": 22.921592712402344,
+    "val_wape": 9.3530855178833,
+    "test_loss_normalized": 0.3686615210635779,
+    "test_mae": 5.949277877807617,
+    "test_rmse": 11.847607612609863,
+    "test_mape": 17604530176.0,
+    "test_smape": 34.03242874145508,
+    "test_wape": 11.725192070007324
+  }
+]

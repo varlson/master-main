@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-nois_corr-with-alpah_filter0_4_STICformer_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_layers": 2,
+      "num_heads": 4,
+      "ff_multiplier": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 18,
+    "train_loss_last": 0.1754213260454044,
+    "val_loss_normalized": 0.20174289732440118,
+    "val_mae": 1.9916608333587646,
+    "val_rmse": 4.224711894989014,
+    "val_mape": 135315.8125,
+    "val_smape": 4.104864120483398,
+    "val_wape": 3.2069311141967773,
+    "test_loss_normalized": 0.18069670227087714,
+    "test_mae": 1.8877062797546387,
+    "test_rmse": 4.016567707061768,
+    "test_mape": 112671.0234375,
+    "test_smape": 3.7910268306732178,
+    "test_wape": 3.0221989154815674
+  }
+]

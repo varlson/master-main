@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-high_sal-with-alpah_filter0_4_GraphWaveNet_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 23,
+    "train_loss_last": 0.1844344352094228,
+    "val_loss_normalized": 0.2351184230000695,
+    "val_mae": 2.201686382293701,
+    "val_rmse": 4.506012916564941,
+    "val_mape": 50516440.0,
+    "val_smape": 4.558574199676514,
+    "val_wape": 3.5363500118255615,
+    "test_loss_normalized": 0.2060187968591148,
+    "test_mae": 2.0694425106048584,
+    "test_rmse": 4.239220142364502,
+    "test_mape": 40284780.0,
+    "test_smape": 4.171006679534912,
+    "test_wape": 3.3039395809173584
+  }
+]

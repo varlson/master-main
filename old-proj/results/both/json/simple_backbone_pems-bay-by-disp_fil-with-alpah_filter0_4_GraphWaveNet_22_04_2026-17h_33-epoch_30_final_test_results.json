@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-disp_fil-with-alpah_filter0_4_GraphWaveNet_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 19,
+    "train_loss_last": 0.21152792652055882,
+    "val_loss_normalized": 0.2647378290746292,
+    "val_mae": 2.3065967559814453,
+    "val_rmse": 4.83975887298584,
+    "val_mape": 134727.765625,
+    "val_smape": 4.7783966064453125,
+    "val_wape": 3.714034080505371,
+    "test_loss_normalized": 0.21978001245668877,
+    "test_mae": 2.118802070617676,
+    "test_rmse": 4.429413318634033,
+    "test_mape": 111937.984375,
+    "test_smape": 4.278005599975586,
+    "test_wape": 3.392180919647217
+  }
+]

@@ -1,0 +1,81 @@
+% Requer \usepackage{booktabs}
+
+\begin{table}[ht]
+\centering
+\caption{Comparacao entre rede original e backbones em metr-la. Delta calculado sobre o MAE em relacao ao mesmo modelo na rede original.}
+\label{tab:metr-la-original-backbones}
+\begin{tabular}{llrrrr}
+\toprule
+Grafo & Modelo & MAE & RMSE & WAPE (\%) & $\Delta$ MAE vs Original (\%) \\
+\midrule
+Original & STICformer & 5.997 & 11.857 & 11.820 & 0.00 \\
+Original & MTGNN & 6.811 & 12.371 & 13.424 & 0.00 \\
+Original & GraphWaveNet & 6.106 & 12.027 & 12.034 & 0.00 \\
+Disparity Filter & STICformer & 5.966 & 11.859 & 11.757 & -0.53 \\
+Disparity Filter & MTGNN & 6.825 & 12.384 & 13.452 & +0.21 \\
+Disparity Filter & GraphWaveNet & 6.334 & 12.091 & 12.484 & +3.73 \\
+Noise Corrected & STICformer & 5.949 & 11.848 & 11.725 & -0.80 \\
+Noise Corrected & MTGNN & 6.782 & 12.365 & 13.366 & -0.43 \\
+Noise Corrected & GraphWaveNet & 6.131 & 12.034 & 12.082 & +0.40 \\
+High Salience & STICformer & 6.086 & 11.913 & 11.964 & +1.49 \\
+High Salience & MTGNN & 7.023 & 12.305 & 13.804 & +3.10 \\
+High Salience & GraphWaveNet & 6.204 & 12.024 & 12.195 & +1.60 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Comparacao entre rede original e backbones em pems-bay. Delta calculado sobre o MAE em relacao ao mesmo modelo na rede original.}
+\label{tab:pems-bay-original-backbones}
+\begin{tabular}{llrrrr}
+\toprule
+Grafo & Modelo & MAE & RMSE & WAPE (\%) & $\Delta$ MAE vs Original (\%) \\
+\midrule
+Original & STICformer & 1.950 & 4.113 & 3.123 & 0.00 \\
+Original & MTGNN & 2.197 & 4.731 & 3.518 & 0.00 \\
+Original & GraphWaveNet & 2.039 & 4.292 & 3.264 & 0.00 \\
+Disparity Filter & STICformer & 1.960 & 4.116 & 3.139 & +0.51 \\
+Disparity Filter & MTGNN & 2.194 & 4.740 & 3.512 & -0.16 \\
+Disparity Filter & GraphWaveNet & 2.119 & 4.429 & 3.392 & +3.93 \\
+Noise Corrected & STICformer & 1.888 & 4.017 & 3.022 & -3.22 \\
+Noise Corrected & MTGNN & 2.187 & 4.629 & 3.501 & -0.47 \\
+Noise Corrected & GraphWaveNet & 2.091 & 4.389 & 3.348 & +2.57 \\
+High Salience & STICformer & 1.913 & 4.116 & 3.055 & -1.91 \\
+High Salience & MTGNN & 2.162 & 4.670 & 3.451 & -1.61 \\
+High Salience & GraphWaveNet & 2.069 & 4.239 & 3.304 & +1.50 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Melhor modelo por dataset original, usando MAE de teste como criterio principal.}
+\label{tab:best-models-original}
+\begin{tabular}{llrrr}
+\toprule
+Dataset & Melhor modelo & MAE & RMSE & WAPE (\%) \\
+\midrule
+metr-la & STICformer & 5.997 & 11.857 & 11.820 \\
+pems-bay & STICformer & 1.950 & 4.113 & 3.123 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Melhor modelo por dataset e backbone, usando MAE de teste como criterio principal.}
+\label{tab:best-models-backbones}
+\begin{tabular}{lllrrr}
+\toprule
+Dataset & Backbone & Melhor modelo & MAE & RMSE & WAPE (\%) \\
+\midrule
+metr-la & Disparity Filter & STICformer & 5.966 & 11.859 & 11.757 \\
+metr-la & Noise Corrected & STICformer & 5.949 & 11.848 & 11.725 \\
+metr-la & High Salience & STICformer & 6.086 & 11.913 & 11.964 \\
+pems-bay & Disparity Filter & STICformer & 1.960 & 4.116 & 3.139 \\
+pems-bay & Noise Corrected & STICformer & 1.888 & 4.017 & 3.022 \\
+pems-bay & High Salience & STICformer & 1.913 & 4.116 & 3.055 \\
+\bottomrule
+\end{tabular}
+\end{table}

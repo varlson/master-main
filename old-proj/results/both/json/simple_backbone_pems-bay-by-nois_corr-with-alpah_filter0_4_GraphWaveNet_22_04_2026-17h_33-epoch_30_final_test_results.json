@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_pems-bay-by-nois_corr-with-alpah_filter0_4_GraphWaveNet_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 22,
+    "train_loss_last": 0.20442854580387734,
+    "val_loss_normalized": 0.25712187501367617,
+    "val_mae": 2.2678964138031006,
+    "val_rmse": 4.770674705505371,
+    "val_mape": 135733.0625,
+    "val_smape": 4.69450044631958,
+    "val_wape": 3.651719808578491,
+    "test_loss_normalized": 0.21577992306256588,
+    "test_mae": 2.091175079345703,
+    "test_rmse": 4.388820171356201,
+    "test_mape": 112737.7421875,
+    "test_smape": 4.2211174964904785,
+    "test_wape": 3.3479504585266113
+  }
+]

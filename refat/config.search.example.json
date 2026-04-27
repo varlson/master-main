@@ -1,0 +1,72 @@
+{
+  "mode": "search_best",
+  "experiment_scope": "original",
+  "dataset_names": ["pems-bay", "metr-la"],
+  "original_data_dir": "../old-proj/data/npy",
+  "results_dir": "./results",
+  "model_names": ["GraphWaveNet", "MTGNN", "DGCRN", "STICformer", "PatchSTG"],
+  "device": "cuda",
+  "seq_len": 12,
+  "horizon": 12,
+  "batch_size": 32,
+  "epochs": 1,
+  "seeds": [42],
+  "selection_metric": "val_mae",
+  "normalize": true,
+  "normalization_method": "zscore",
+  "generate_plots": false,
+  "plots_num_nodes": 4,
+  "plots_max_time_points": 350,
+  "run_label": "search_example",
+  "param_grids": {
+    "GraphWaveNet": {
+      "hidden_dim": [32, 64],
+      "num_blocks": [2, 3],
+      "dilation_base": [2, 3],
+      "k": [2, 3],
+      "dropout": [0.1, 0.2],
+      "lr": [0.001, 0.0005],
+      "weight_decay": [0.0001, 0.00001]
+    },
+    "MTGNN": {
+      "hidden_dim": [32, 64],
+      "num_blocks": [2, 3, 4],
+      "kernel_size": [2, 3],
+      "dilation_base": [2, 3],
+      "gcn_depth": [2, 3],
+      "propalpha": [0.05, 0.1],
+      "node_dim": [16, 32],
+      "dropout": [0.1, 0.2],
+      "lr": [0.001, 0.0005],
+      "weight_decay": [0.0001, 0.00001]
+    },
+    "DGCRN": {
+      "hidden_dim": [32, 64],
+      "node_dim": [16, 32],
+      "gcn_depth": [2, 3],
+      "dropout": [0.1, 0.2],
+      "lr": [0.001, 0.0005],
+      "weight_decay": [0.0001, 0.00001]
+    },
+    "STICformer": {
+      "hidden_dim": [32, 64],
+      "num_layers": [2, 3],
+      "num_heads": [2, 4],
+      "ff_multiplier": [2, 4],
+      "dropout": [0.1, 0.2],
+      "lr": [0.001, 0.0005],
+      "weight_decay": [0.0001, 0.00001]
+    },
+    "PatchSTG": {
+      "hidden_dim": [32, 64],
+      "patch_len": [3, 4, 6],
+      "patch_stride": [1, 2, 3],
+      "num_layers": [2, 3],
+      "num_heads": [2, 4],
+      "ff_multiplier": [2, 4],
+      "dropout": [0.1, 0.2],
+      "lr": [0.001, 0.0005],
+      "weight_decay": [0.0001, 0.00001]
+    }
+  }
+}

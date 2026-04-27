@@ -1,0 +1,31 @@
+[
+  {
+    "run_name": "simple_backbone_metr-la-by-disp_fil-with-alpah_filter0_4_GraphWaveNet_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 17,
+    "train_loss_last": 0.28895165606119605,
+    "val_loss_normalized": 0.31827929177295383,
+    "val_mae": 5.471973419189453,
+    "val_rmse": 11.01471996307373,
+    "val_mape": 13018267648.0,
+    "val_smape": 23.372699737548828,
+    "val_wape": 9.978036880493164,
+    "test_loss_normalized": 0.3839377259974864,
+    "test_mae": 6.334065914154053,
+    "test_rmse": 12.09099006652832,
+    "test_mape": 18895151104.0,
+    "test_smape": 34.462196350097656,
+    "test_wape": 12.483555793762207
+  }
+]

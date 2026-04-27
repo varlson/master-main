@@ -1,0 +1,23 @@
+\begin{table}[ht]
+\centering
+\caption{Comparacao entre rede original e backbones em pems-bay. Delta calculado sobre o MAE em relacao ao mesmo modelo na rede original.}
+\label{tab:pems-bay-original-backbones}
+\begin{tabular}{llrrrr}
+\toprule
+Grafo & Modelo & MAE & RMSE & WAPE (\%) & $\Delta$ MAE vs Original (\%) \\
+\midrule
+Original & STICformer & 1.950 & 4.113 & 3.123 & 0.00 \\
+Original & MTGNN & 2.197 & 4.731 & 3.518 & 0.00 \\
+Original & GraphWaveNet & 2.039 & 4.292 & 3.264 & 0.00 \\
+Disparity Filter & STICformer & 1.960 & 4.116 & 3.139 & +0.51 \\
+Disparity Filter & MTGNN & 2.194 & 4.740 & 3.512 & -0.16 \\
+Disparity Filter & GraphWaveNet & 2.119 & 4.429 & 3.392 & +3.93 \\
+Noise Corrected & STICformer & 1.888 & 4.017 & 3.022 & -3.22 \\
+Noise Corrected & MTGNN & 2.187 & 4.629 & 3.501 & -0.47 \\
+Noise Corrected & GraphWaveNet & 2.091 & 4.389 & 3.348 & +2.57 \\
+High Salience & STICformer & 1.913 & 4.116 & 3.055 & -1.91 \\
+High Salience & MTGNN & 2.162 & 4.670 & 3.451 & -1.61 \\
+High Salience & GraphWaveNet & 2.069 & 4.239 & 3.304 & +1.50 \\
+\bottomrule
+\end{tabular}
+\end{table}

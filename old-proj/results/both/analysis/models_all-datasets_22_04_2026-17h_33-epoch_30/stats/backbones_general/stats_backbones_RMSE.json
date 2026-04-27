@@ -1,0 +1,19 @@
+{
+  "friedman_statistic": 9.0,
+  "friedman_p_value": 0.02929088653488826,
+  "n_blocks": 6,
+  "n_models": 4,
+  "critical_difference": 1.9148432265902373,
+  "average_ranks": {
+    "NC": 1.8333333333333333,
+    "HSS": 2.0,
+    "Full": 2.3333333333333335,
+    "DF": 3.8333333333333335
+  },
+  "files": {
+    "rank_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/ranks_backbones_RMSE.csv",
+    "pairwise_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/nemenyi_backbones_RMSE.csv",
+    "pvalues_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/pvalues_backbones_RMSE.csv",
+    "nemenyi_tex": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/nemenyi_backbones_RMSE.tex"
+  }
+}

@@ -1,0 +1,4 @@
+block_id,DF,Full,HSS,NC
+GraphWaveNet,4.0,1.0,3.0,2.0
+MTGNN,3.0,2.0,4.0,1.0
+STICformer,2.0,3.0,4.0,1.0

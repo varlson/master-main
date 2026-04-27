@@ -1,0 +1,17 @@
+\begin{table}[ht]
+\centering
+\caption{Melhor modelo por dataset e backbone, usando MAE de teste como criterio principal.}
+\label{tab:best-models-backbones}
+\begin{tabular}{lllrrr}
+\toprule
+Dataset & Backbone & Melhor modelo & MAE & RMSE & WAPE (\%) \\
+\midrule
+metr-la & Disparity Filter & STICformer & 5.966 & 11.859 & 11.757 \\
+metr-la & Noise Corrected & STICformer & 5.949 & 11.848 & 11.725 \\
+metr-la & High Salience & STICformer & 6.086 & 11.913 & 11.964 \\
+pems-bay & Disparity Filter & STICformer & 1.960 & 4.116 & 3.139 \\
+pems-bay & Noise Corrected & STICformer & 1.888 & 4.017 & 3.022 \\
+pems-bay & High Salience & STICformer & 1.913 & 4.116 & 3.055 \\
+\bottomrule
+\end{tabular}
+\end{table}

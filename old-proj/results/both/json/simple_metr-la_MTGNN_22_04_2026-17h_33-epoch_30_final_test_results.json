@@ -1,0 +1,34 @@
+[
+  {
+    "run_name": "simple_metr-la_MTGNN_22_04_2026-17h_33-epoch_30_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "hidden_dim": 64,
+      "num_blocks": 3,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "train_epochs_completed": 6,
+    "train_loss_last": 0.31415044465593406,
+    "val_loss_normalized": 0.33040779726318664,
+    "val_mae": 5.849453449249268,
+    "val_rmse": 11.221933364868164,
+    "val_mape": 13322028032.0,
+    "val_smape": 24.120214462280273,
+    "val_wape": 10.666363716125488,
+    "test_loss_normalized": 0.4019484481312961,
+    "test_mae": 6.811145305633545,
+    "test_rmse": 12.370655059814453,
+    "test_mape": 20487247872.0,
+    "test_smape": 35.19700622558594,
+    "test_wape": 13.423812866210938
+  }
+]

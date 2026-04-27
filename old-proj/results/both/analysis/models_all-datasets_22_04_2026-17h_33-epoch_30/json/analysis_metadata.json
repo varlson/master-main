@@ -1,0 +1,15 @@
+{
+  "mode": "both",
+  "metric": "MAE",
+  "alpha": 0.05,
+  "normalize": "relative_score",
+  "source_reports": {
+    "original": "/home/suleimane/master/main/master-main/results/both/md/original_all-datasets_22_04_2026-17h_33-epoch_30_comparison_report.md",
+    "backbone": "/home/suleimane/master/main/master-main/results/both/md/backbone_all-datasets_22_04_2026-17h_33-epoch_30_comparison_report.md"
+  },
+  "source_csvs": {
+    "original": "/home/suleimane/master/main/master-main/results/both/csv/original_all-datasets_22_04_2026-17h_33-epoch_30_consolidated_experiments.csv",
+    "backbone": "/home/suleimane/master/main/master-main/results/both/csv/backbone_all-datasets_22_04_2026-17h_33-epoch_30_consolidated_experiments.csv"
+  },
+  "loaded_results_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/csv/loaded_results.csv"
+}

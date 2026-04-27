@@ -1,0 +1,21 @@
+{
+  "friedman_statistic": 5.200000000000003,
+  "friedman_p_value": 0.15772445039666289,
+  "n_blocks": 6,
+  "n_models": 4,
+  "critical_difference": 1.9148432265902373,
+  "average_ranks": {
+    "NC": 1.6666666666666667,
+    "Full": 2.3333333333333335,
+    "HSS": 2.6666666666666665,
+    "DF": 3.3333333333333335
+  },
+  "files": {
+    "rank_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/ranks_backbones_MAE.csv",
+    "pairwise_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/nemenyi_backbones_MAE.csv",
+    "pvalues_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/pvalues_backbones_MAE.csv",
+    "nemenyi_tex": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/backbones_general/nemenyi_backbones_MAE.tex",
+    "cd_png": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/figures/cd/backbones_general/cd_backbones_MAE.png",
+    "cd_pdf": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/figures/cd/backbones_general/cd_backbones_MAE.pdf"
+  }
+}

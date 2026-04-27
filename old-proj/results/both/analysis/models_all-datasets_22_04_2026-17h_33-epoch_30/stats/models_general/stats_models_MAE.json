@@ -1,0 +1,18 @@
+{
+  "friedman_statistic": 16.0,
+  "friedman_p_value": 0.0003354626279025119,
+  "n_blocks": 8,
+  "n_models": 3,
+  "critical_difference": 1.1718502931892045,
+  "average_ranks": {
+    "STICformer": 1.0,
+    "GraphWaveNet": 2.0,
+    "MTGNN": 3.0
+  },
+  "files": {
+    "rank_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/models_general/ranks_models_MAE.csv",
+    "pairwise_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/models_general/nemenyi_models_MAE.csv",
+    "pvalues_csv": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/models_general/pvalues_models_MAE.csv",
+    "nemenyi_tex": "/home/suleimane/master/main/master-main/results/both/analysis/models_all-datasets_22_04_2026-17h_33-epoch_30/stats/models_general/nemenyi_models_MAE.tex"
+  }
+}

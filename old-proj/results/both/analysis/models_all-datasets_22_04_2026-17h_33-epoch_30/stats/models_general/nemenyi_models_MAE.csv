@@ -1,0 +1,4 @@
+model_a,model_b,rank_diff,p_value,significant
+STICformer,GraphWaveNet,1.0,0.11218311427809735,False
+STICformer,MTGNN,2.0,0.00018710512242481325,True
+GraphWaveNet,MTGNN,1.0,0.11218311427809735,False

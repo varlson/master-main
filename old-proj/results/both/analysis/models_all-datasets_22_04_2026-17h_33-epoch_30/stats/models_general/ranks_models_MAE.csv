@@ -1,0 +1,9 @@
+block_id,STICformer,MTGNN,GraphWaveNet
+METR-LA | DF,1.0,3.0,2.0
+METR-LA | Full,1.0,3.0,2.0
+METR-LA | HSS,1.0,3.0,2.0
+METR-LA | NC,1.0,3.0,2.0
+PEMS-BAY | DF,1.0,3.0,2.0
+PEMS-BAY | Full,1.0,3.0,2.0
+PEMS-BAY | HSS,1.0,3.0,2.0
+PEMS-BAY | NC,1.0,3.0,2.0
