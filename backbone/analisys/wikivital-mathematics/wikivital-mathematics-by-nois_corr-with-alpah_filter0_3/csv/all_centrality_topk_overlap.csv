@@ -1,0 +1,6 @@
+dataset,original_graph,backbone_graph,metric,k,overlap_size,overlap_ratio
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-nois_corr-with-alpah_filter0_3,degree_centrality,20,7,0.35
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-nois_corr-with-alpah_filter0_3,betweenness_centrality,20,19,0.95
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-nois_corr-with-alpah_filter0_3,closeness_centrality,20,19,0.95
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-nois_corr-with-alpah_filter0_3,eigenvector_centrality,20,10,0.5
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-nois_corr-with-alpah_filter0_3,pagerank,20,17,0.85

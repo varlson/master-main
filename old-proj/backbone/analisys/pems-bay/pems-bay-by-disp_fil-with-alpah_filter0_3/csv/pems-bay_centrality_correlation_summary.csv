@@ -1,6 +1,0 @@
-dataset,original_graph,backbone_graph,metric,num_common_nodes,spearman_corr,pearson_corr
-pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_3,degree_centrality,325,0.8601067881567749,0.860638095648681
-pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_3,betweenness_centrality,325,0.5036275491767174,0.4048866010712
-pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_3,closeness_centrality,325,0.7497630523601071,0.7435219521443396
-pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_3,eigenvector_centrality,325,0.8369820000707581,0.9717641710569308
-pems-bay,pems-bay,pems-bay-by-disp_fil-with-alpah_filter0_3,pagerank,325,0.7564041422229042,0.8313466453468449

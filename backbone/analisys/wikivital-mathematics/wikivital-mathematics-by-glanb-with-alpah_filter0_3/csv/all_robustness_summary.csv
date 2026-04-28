@@ -1,0 +1,5 @@
+dataset,graph_name,strategy,auc_lcc_mean,auc_lcc_std,auc_efficiency_mean,auc_efficiency_std
+wikivital-mathematics,wikivital-mathematics,random,0.4971956928838952,0.0009398213088035222,0.8777664636166275,0.0225748667698071
+wikivital-mathematics,wikivital-mathematics,targeted_degree,0.4303370786516854,,0.40278930917308736,
+wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,random,0.45748356807511736,0.004401779500965542,0.6394434601886178,0.021027912406834368
+wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,targeted_degree,0.1603990610328639,,0.09612176665215123,

@@ -1,0 +1,6 @@
+dataset,original_graph,backbone_graph,metric,num_common_nodes,spearman_corr,pearson_corr
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,degree_centrality,1065,0.8535198570416348,0.881569348415819
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,betweenness_centrality,1065,0.9579983118258775,0.9996400280469485
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,closeness_centrality,1065,0.9996035038025914,0.999578038876765
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,eigenvector_centrality,1065,0.9335234834867415,0.9194620719422503
+wikivital-mathematics,wikivital-mathematics,wikivital-mathematics-by-glanb-with-alpah_filter0_3,pagerank,1065,0.9108569268280725,0.9316863187740464
