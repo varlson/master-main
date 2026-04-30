@@ -366,6 +366,10 @@ def _run_group(
         )
         return []
 
+    print(
+        f"Iniciando grupo '{group.experiment_type}' com device={config.device.upper()} "
+        f"e resultados em {results_root}"
+    )
     _shared_runtime()["set_results_root"](results_root)
     param_grids = build_param_grids(
         seq_len=config.seq_len,

@@ -268,7 +268,10 @@ def _run_single_training(
         best_model_path = _configure_best_model_path(model, model_name, run_name)
         mlflow.log_param("best_model_path", str(best_model_path))
 
-        print(f"\nIniciando treinamento de {model_name} | fase={phase} | seed={seed}")
+        print(
+            f"\nIniciando treinamento de {model_name} | fase={phase} | "
+            f"seed={seed} | device={device.upper()}"
+        )
         model.fit(train_loader, val_loader)
 
         result = {

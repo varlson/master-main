@@ -8,6 +8,7 @@ from pipeline.workflows.runtime import run_pipeline
 
 def run_forecasting_workflow(*, config_path: str, dry_run: bool) -> None:
     config = load_config(config_path)
+    resolved_device = config.device.upper()
 
     print(
         json.dumps(
@@ -18,6 +19,7 @@ def run_forecasting_workflow(*, config_path: str, dry_run: bool) -> None:
                 "experiment_scope": config.experiment_scope,
                 "dataset_names": config.dataset_names,
                 "model_names": config.model_names,
+                "device": resolved_device,
                 "results_dir": str(config.results_dir),
                 "best_configs_file": (
                     str(config.best_configs_file) if config.best_configs_file else None
@@ -28,4 +30,5 @@ def run_forecasting_workflow(*, config_path: str, dry_run: bool) -> None:
             ensure_ascii=False,
         )
     )
+    print(f"Executando forecast com device={resolved_device}")
     run_pipeline(config=config, dry_run=dry_run)
