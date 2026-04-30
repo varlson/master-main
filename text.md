@@ -30,4 +30,4 @@ Quando seleciono outro fluxo, já vai selecionar rodar modelos que passei pelo p
 
 ### Onde Será feito:
 
-Toda essa refatoração será feito criando novo diretorio "refat" deixando old-proj intacto, copiando os necessarios e ou a atualizações necessarias
+Toda essa refatoração será feito criando novo diretorio "pipeline" deixando old-proj intacto, copiando os necessarios e ou a atualizações necessarias

@@ -1,0 +1,22 @@
+{
+  "datasets": [
+    "metr-la",
+    "pems-bay"
+  ],
+  "methods": [
+    "disp_fil",
+    "nois_corr",
+    "glanb"
+  ],
+  "alpha": 0.3,
+  "min_degree": 1,
+  "analysis_root": "/home/suleimane/master/main/master-main/outputs/backbone",
+  "generated_backbones": [
+    "metr-la-by-disp_fil-with-alpah_filter0_3",
+    "metr-la-by-nois_corr-with-alpah_filter0_3",
+    "metr-la-by-glanb-with-alpah_filter0_3",
+    "pems-bay-by-disp_fil-with-alpah_filter0_3",
+    "pems-bay-by-nois_corr-with-alpah_filter0_3",
+    "pems-bay-by-glanb-with-alpah_filter0_3"
+  ]
+}

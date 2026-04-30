@@ -2,26 +2,31 @@ ssh config file
 
 scp -r -P 5000 suleimaneducure@200.239.132.159://media/work/suleimaneducure/codes/master-main/data /home/suleimane/master/main/master-main
 
-Grid search:
-CONFIG_SOURCE=json CONFIG_FILE=config.json python3 main.py
+Entrada principal recomendada:
+python3 -m pipeline.main
 
-Selected params already saved:
-CONFIG_SOURCE=json CONFIG_FILE=config.selected.example.json python3 main.py
+Forecasting com config:
+python3 -m pipeline.main forecast --config configs/search/pipeline.search.example.json
+python3 -m pipeline.main forecast --config configs/run_best/pipeline.run_best.example.json
+python3 -m pipeline.main forecast --config configs/full/pipeline.run_configured.example.json
 
-CONFIG_SOURCE=json CONFIG_FILE=config.selected.top3.json python3 main.py
+Dry run:
+python3 -m pipeline.main forecast --config configs/search/pipeline.search.example.json --dry-run
 
-Backbone generation (alpha-only + auto analysis):
-cd backbone
-python3 main.py
-python3 main.py --datasets metr-la --methods disp_fil nois_corr
+Backbone generation:
+python3 -m pipeline.main build-backbones --datasets metr-la --methods disp_fil nois_corr --alpha 0.3
+
+Backbone analysis:
+python3 -m pipeline.main analyze-backbones --datasets metr-la pems-bay --methods disp_fil nois_corr --alpha 0.3
 
 Backbone analysis outputs:
-backbone/analisys/<dataset>/<backbone_name>/
+outputs/analysis/<run_id>/
 
-CONFIG_SOURCE=json CONFIG_FILE=config.selected.top3.json python3 main.py
-python3 simple_pipeline.py --config simple_config.json --params params.json
+Backbone generation outputs:
+- dados derivados: data/npy e data/GraphML
+- relatorios por backbone: outputs/backbone/<dataset>/<backbone_name>/
 
-Faça analise no /backbone/analisys comparando os dois metodos de extração de backbones e os dois datasets:
+Faça analise usando os artefatos arquivados em `legacy/backbone-analisys-historical` comparando os dois metodos de extração de backbones e os dois datasets:
 
 - como cada dataset performou com os metodos de extração de backbone
 - Como os datasets combinaram ou nao com os metodos
@@ -30,4 +35,8 @@ Faça analise no /backbone/analisys comparando os dois metodos de extração de 
 
 Obs: Suspeito de que uma certa dataset aparenta ser mais sensivel a poda e que taves essa sensibilidade tenha a ver com a estrutura topologica original e que os beneficios de extração de backbone depende da estrutura da rede original , ou seja, nem sempre backbone ajuda.
 
-Gere relator.md no /backbone/analisys crie as tabelas com indices das redes originais e indices pós extração para cada dataset e metodo todo na mesma coluna. e deixe em baixo script latex para a mesma tabela que eu possa usar no documento latex depos.
+Historico arquivado:
+- `legacy/backbone-analisys-historical/`
+
+Novos relatorios:
+- `outputs/analysis/`

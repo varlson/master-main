@@ -1,0 +1,56 @@
+{
+  "mode": "run_configured",
+  "experiment_scope": "both",
+  "dataset_names": ["metr-la", "pems-bay"],
+
+  "original_data_dir": "../../data/npy",
+  "results_dir": "../../outputs/forecasting",
+  "model_names": ["GraphWaveNet", "MTGNN", "DGCRN"],
+  "device": "cpu",
+  "seq_len": 12,
+  "horizon": 12,
+  "batch_size": 32,
+  "epochs": 2,
+  "seeds": [42],
+  "selection_metric": "val_mae",
+  "normalize": true,
+  "normalization_method": "zscore",
+  "generate_plots": false,
+  "plots_num_nodes": 4,
+  "plots_max_time_points": 350,
+  "run_label": "run_configured_example",
+  "model_params": {
+    "GraphWaveNet": {
+      "hidden_dim": 32,
+      "num_blocks": 2,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "MTGNN": {
+      "hidden_dim": 32,
+      "num_blocks": 2,
+      "kernel_size": 2,
+      "dilation_base": 2,
+      "gcn_depth": 2,
+      "propalpha": 0.05,
+      "node_dim": 16,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    },
+    "DGCRN": {
+      "hidden_dim": 32,
+      "node_dim": 16,
+      "gcn_depth": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "patience": 5
+    }
+  }
+}

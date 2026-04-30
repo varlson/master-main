@@ -7,7 +7,7 @@ Este documento compara os dois metodos de extração de backbone atualmente aval
 - `disp_fil` (`Disparity Filter`)
 - `nois_corr` (`Noise Corrected Filter`)
 
-A comparacao usa os resultados estruturais ja gerados em `backbone/analisys` para os datasets `metr-la` e `pems-bay`.
+A comparacao usa os resultados estruturais historicos arquivados em `legacy/backbone-analisys-historical` para os datasets `metr-la` e `pems-bay`.
 
 Observacao importante:
 

@@ -1,0 +1,37 @@
+[
+  {
+    "run_name": "original_pems-bay_GraphWaveNet_run_configured_example_final_seed42",
+    "seed": 42,
+    "phase": "final",
+    "params": {
+      "input_dim": 1,
+      "hidden_dim": 32,
+      "output_dim": 1,
+      "seq_len": 12,
+      "horizon": 12,
+      "num_blocks": 2,
+      "dilation_base": 2,
+      "k": 2,
+      "dropout": 0.1,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "epochs": 2,
+      "patience": 5
+    },
+    "mlflow_run_id": "39ea0d2ea67440ce9f471d0d2ae26b5b",
+    "train_epochs_completed": 2,
+    "train_loss_last": 0.24770900571816845,
+    "val_loss_normalized": 0.30567673398353207,
+    "val_mae": 2.4959299564361572,
+    "val_rmse": 5.202723503112793,
+    "val_mape": 135328.84375,
+    "val_smape": 5.155210494995117,
+    "val_wape": 4.01889705657959,
+    "test_loss_normalized": 0.2501659614485374,
+    "test_mae": 2.2713868618011475,
+    "test_rmse": 4.725619792938232,
+    "test_mape": 112515.6015625,
+    "test_smape": 4.58158540725708,
+    "test_wape": 3.6364693641662598
+  }
+]

@@ -107,9 +107,39 @@ Observação:
 
 ## Como Usar
 
-O pipeline é executado por `main.py` e pode ser configurado por:
-- variáveis de ambiente
-- arquivo JSON, usando `CONFIG_SOURCE=json`
+O entrypoint principal do projeto agora é `pipeline/main.py`.
+Os fluxos legados continuam no repositório por compatibilidade, mas o uso recomendado passa por `pipeline`.
+O runtime principal usado pelo `pipeline` vem de `shared/` e `models/` na raiz do projeto.
+
+## Execução principal
+
+```bash
+python3 -m pipeline.main forecast --config configs/search/pipeline.search.example.json
+python3 -m pipeline.main forecast --config configs/run_best/pipeline.run_best.example.json
+python3 -m pipeline.main forecast --config configs/full/pipeline.run_configured.example.json
+```
+
+Sem subcomando explicito, `forecast` é assumido:
+
+```bash
+python3 -m pipeline.main --config configs/search/pipeline.search.example.json
+```
+
+## Backbone pelo pipeline principal
+
+```bash
+python3 -m pipeline.main build-backbones --datasets metr-la --methods disp_fil high_sal --alpha 0.3
+python3 -m pipeline.main analyze-backbones --datasets metr-la pems-bay --methods disp_fil nois_corr --alpha 0.3
+```
+
+No fluxo novo:
+- os backbones gerados como dados continuam em `data/npy` e `data/GraphML`
+- os artefatos de execucao e relatorios ficam em `outputs/backbone` e `outputs/analysis`
+
+## Fluxo legado
+
+O texto abaixo descreve o pipeline historico baseado em `main.py` e variaveis de ambiente.
+Ele pode ser mantido durante a migracao, mas a organizacao alvo do projeto usa `pipeline/main.py` como entrada oficial, e `legacy/old-proj/` deve ser tratado como area legada.
 
 ## Execução básica (dataset único)
 

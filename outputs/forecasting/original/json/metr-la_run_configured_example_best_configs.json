@@ -1,0 +1,90 @@
+{
+  "metr-la": {
+    "GraphWaveNet": {
+      "experiment_name": "original_metr-la_GraphWaveNet_run_configured_example",
+      "selection_metric": "val_mae",
+      "selected_params": {
+        "dilation_base": 2,
+        "dropout": 0.1,
+        "epochs": 2,
+        "hidden_dim": 32,
+        "horizon": 12,
+        "input_dim": 1,
+        "k": 2,
+        "lr": 0.001,
+        "num_blocks": 2,
+        "output_dim": 1,
+        "patience": 5,
+        "seq_len": 12,
+        "weight_decay": 0.0001
+      },
+      "final_num_completed_seeds": 1,
+      "test_mae_mean": 6.335712432861328,
+      "test_mae_std": 0.0,
+      "test_rmse_mean": 12.476897239685059,
+      "test_rmse_std": 0.0,
+      "test_wape_mean": 12.486777305603027,
+      "rank_in_dataset": 1,
+      "delta_vs_best_pct": 0.0,
+      "timestamp": "2026-04-29T21:47:21.999464"
+    },
+    "DGCRN": {
+      "experiment_name": "original_metr-la_DGCRN_run_configured_example",
+      "selection_metric": "val_mae",
+      "selected_params": {
+        "dropout": 0.1,
+        "epochs": 2,
+        "gcn_depth": 2,
+        "hidden_dim": 32,
+        "horizon": 12,
+        "input_dim": 1,
+        "lr": 0.001,
+        "node_dim": 16,
+        "output_dim": 1,
+        "patience": 5,
+        "seq_len": 12,
+        "weight_decay": 0.0001
+      },
+      "final_num_completed_seeds": 1,
+      "test_mae_mean": 6.501735210418701,
+      "test_mae_std": 0.0,
+      "test_rmse_mean": 12.629244804382324,
+      "test_rmse_std": 0.0,
+      "test_wape_mean": 12.813983917236328,
+      "rank_in_dataset": 2,
+      "delta_vs_best_pct": 2.620427920564472,
+      "timestamp": "2026-04-29T21:47:21.999527"
+    },
+    "MTGNN": {
+      "experiment_name": "original_metr-la_MTGNN_run_configured_example",
+      "selection_metric": "val_mae",
+      "selected_params": {
+        "dilation_base": 2,
+        "dropout": 0.1,
+        "epochs": 2,
+        "gcn_depth": 2,
+        "hidden_dim": 32,
+        "horizon": 12,
+        "input_dim": 1,
+        "kernel_size": 2,
+        "lr": 0.001,
+        "node_dim": 16,
+        "num_blocks": 2,
+        "output_dim": 1,
+        "patience": 5,
+        "propalpha": 0.05,
+        "seq_len": 12,
+        "weight_decay": 0.0001
+      },
+      "final_num_completed_seeds": 1,
+      "test_mae_mean": 6.669495105743408,
+      "test_mae_std": 0.0,
+      "test_rmse_mean": 12.311209678649902,
+      "test_rmse_std": 0.0,
+      "test_wape_mean": 13.144615173339844,
+      "rank_in_dataset": 3,
+      "delta_vs_best_pct": 5.268273716951799,
+      "timestamp": "2026-04-29T21:47:21.999502"
+    }
+  }
+}

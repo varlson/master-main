@@ -1,0 +1,1 @@
+"""Utilitarios internos do pipeline."""
